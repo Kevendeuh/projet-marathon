@@ -1,5 +1,7 @@
 package com.example.pllrun.Classes
 
+import androidx.room.ColumnInfo
+import androidx.room.PrimaryKey
 import java.time.LocalDate
 import java.time.Duration
 
@@ -13,9 +15,15 @@ import java.time.Duration
  * @property intensite Le niveau d'intensité global du plan d'entraînement.
  */
 open class Objectif(
+    @PrimaryKey(autoGenerate = true)
+    val id: String,
+    @ColumnInfo(name = "nom")
     val nom: String,
+    @ColumnInfo(name = "dateDeDebut")
     val dateDeDebut: LocalDate,
+    @ColumnInfo(name = "dateDeFin")
     val dateDeFin: LocalDate,
+    @ColumnInfo(name = "Niveau")
     val Niveau: NiveauExperience
 ) {
     /**
@@ -35,10 +43,11 @@ open class Objectif(
  * @property trajetOptionnel Le parcours spécifique de la course, s'il est connu.
  */
 class ObjectifCourse(
+    id: String,
     nom: String,
     dateDeDebut: LocalDate,
     dateDeFin: LocalDate,
     Niveau: NiveauExperience,
     val distance: Double, // en km
     val objectifTemps: Int, // en minutes
-) : Objectif(nom, dateDeDebut, dateDeFin, Niveau)
+) : Objectif(id,nom, dateDeDebut, dateDeFin, Niveau)

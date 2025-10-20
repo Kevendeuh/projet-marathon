@@ -1,5 +1,8 @@
 package com.example.pllrun.Classes
 
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import java.time.LocalDate
 
 /**
@@ -21,29 +24,44 @@ import java.time.LocalDate
  * @property joursEntrainementDisponibles Liste des jours de la semaine où l'utilisateur est disponible pour s'entraîner (ex: "Lundi", "Mardi", ...).
  * @property objectifs L'objectif principal de l'utilisateur pour sa prochaine course.
  */
+
+@Entity(tableName = "Utilisateur")
 data class Utilisateur(
     // --- Informations d'identification ---
+    @PrimaryKey(autoGenerate = true)
     val id: String,
 
     // --- Informations personnelles (modifiables) ---
+    @ColumnInfo(name = "nom")
     var nom: String = "",
+    @ColumnInfo(name = "prenom")
     var prenom: String = "",
+    @ColumnInfo(name = "dateDeNaissance")
     var dateDeNaissance: LocalDate? = null,
+    @ColumnInfo(name = "sexe")
     var sexe: Sexe = Sexe.NON_SPECIFIE,
 
     // --- Paramètres physiologiques (modifiables) ---
+    @ColumnInfo(name = "poids")
     var poids: Double = 0.0, // en kg
+    @ColumnInfo(name = "taille")
     var taille: Int = 0,     // en cm
+    @ColumnInfo(name = "vma")
     var vma: Double? = 0.0,   // en km/h
+    @ColumnInfo(name = "fcm")
     var fcm: Int? = 0,        // Fréquence Cardiaque Maximale (bpm)
+    @ColumnInfo(name = "fcr")
     var fcr: Int? = 0,        // Fréquence Cardiaque au Repos (bpm)
 
     // --- Expérience et disponibilité (modifiables) ---
+    @ColumnInfo(name = "niveauExperience")
     var niveauExperience: NiveauExperience = NiveauExperience.DEBUTANT,
+    @ColumnInfo(name = "joursEntrainementDisponibles")
     var joursEntrainementDisponibles: List<JourSemaine> = emptyList(),
 
     // --- Objectifs de course (modifiables) ---
     // --- liste d'objectifs de course ---
+    @ColumnInfo(name = "objectifs")
     var objectifs: MutableList<Objectif> = mutableListOf(),
     )
 
