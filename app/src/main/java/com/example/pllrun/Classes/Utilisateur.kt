@@ -29,7 +29,7 @@ import java.time.LocalDate
 data class Utilisateur(
     // --- Informations d'identification ---
     @PrimaryKey(autoGenerate = true)
-    val id: String,
+    val id: Long=0,
 
     // --- Informations personnelles (modifiables) ---
     @ColumnInfo(name = "nom")
@@ -91,3 +91,4 @@ enum class JourSemaine {
     LUNDI, MARDI, MERCREDI, JEUDI, VENDREDI, SAMEDI, DIMANCHE
 }
 
+// nom: String = "", prenom: String = "", dateDeNaissance: LocalDate? = null, sexe: Sexe = Sexe.NON_SPECIFIE, poids: Double = 0.0, taille: Int = 0, vma: Double? = 0.0, fcm: Int? = 0,fcr: Int? = 0,niveauExperience: NiveauExperience = NiveauExperience.DEBUTANT,joursEntrainementDisponibles: List<JourSemaine> = emptyList(), objectifs: MutableList<Objectif> = mutableListOf(),

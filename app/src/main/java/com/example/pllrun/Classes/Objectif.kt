@@ -16,7 +16,7 @@ import java.time.Duration
  */
 open class Objectif(
     @PrimaryKey(autoGenerate = true)
-    val id: String,
+    val id: Long=0,
     @ColumnInfo(name = "nom")
     val nom: String,
     @ColumnInfo(name = "dateDeDebut")
@@ -43,7 +43,7 @@ open class Objectif(
  * @property trajetOptionnel Le parcours spécifique de la course, s'il est connu.
  */
 class ObjectifCourse(
-    id: String,
+    id: Long,
     nom: String,
     dateDeDebut: LocalDate,
     dateDeFin: LocalDate,

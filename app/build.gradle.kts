@@ -35,12 +35,10 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
+
     buildFeatures {
         compose = true
     }
@@ -56,9 +54,10 @@ dependencies {
     // Room
     // 3. MODIFIER LES DÉPENDANCES ROOM
     // Utiliser les variables pour la cohérence
-
+    implementation("com.google.code.gson:gson:2.13.2") // Or the latest version
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
+    implementation(libs.firebase.crashlytics.buildtools)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

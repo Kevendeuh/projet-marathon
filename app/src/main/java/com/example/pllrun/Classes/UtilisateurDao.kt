@@ -21,6 +21,6 @@ interface UtilisateurDao {
     suspend fun delete(utilisateur: Utilisateur)
 
     @Query("SELECT * from utilisateur WHERE id = :id")
-    fun getItem(id: Int): Flow<Utilisateur>
+    fun getItem(id: Long): Flow<Utilisateur>
 
 }
