@@ -22,14 +22,13 @@ import java.time.LocalDate
  * @property fcr Fréquence Cardiaque au Repos (en bpm). Un bon indicateur du niveau de forme cardiovasculaire.
  * @property niveauExperience Le niveau de course de l'utilisateur (Débutant, Intermédiaire, Avancé).
  * @property joursEntrainementDisponibles Liste des jours de la semaine où l'utilisateur est disponible pour s'entraîner (ex: "Lundi", "Mardi", ...).
- * @property objectifs L'objectif principal de l'utilisateur pour sa prochaine course.
  */
 
 @Entity(tableName = "Utilisateur")
 data class Utilisateur(
     // --- Informations d'identification ---
     @PrimaryKey(autoGenerate = true)
-    val id: Long=0,
+    var id: Long=0,
 
     // --- Informations personnelles (modifiables) ---
     @ColumnInfo(name = "nom")
@@ -59,10 +58,6 @@ data class Utilisateur(
     @ColumnInfo(name = "joursEntrainementDisponibles")
     var joursEntrainementDisponibles: List<JourSemaine> = emptyList(),
 
-    // --- Objectifs de course (modifiables) ---
-    // --- liste d'objectifs de course ---
-    @ColumnInfo(name = "objectifs")
-    var objectifs: MutableList<Objectif> = mutableListOf(),
     )
 
 /**

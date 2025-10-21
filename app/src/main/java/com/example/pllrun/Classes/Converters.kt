@@ -1,11 +1,8 @@
 package com.example.pllrun.Classes
 
-import androidx.compose.ui.input.key.type
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import androidx.room.TypeConverter
 import java.time.LocalDate
-
+import java.time.Duration
 class Converters {
 
     // Converter for LocalDate
@@ -35,19 +32,25 @@ class Converters {
         return list?.joinToString(",") { it.name } ?: ""
     }
 
-    // Generic converter for a list of Objects (like Objectif) using Gson
-    // ** You will need to add the Gson dependency for this **
     @TypeConverter
-    fun fromObjectifList(value: String?): MutableList<Objectif> {
-        if (value == null) {
-            return mutableListOf()
-        }
-        val listType = object : TypeToken<MutableList<Objectif>>() {}.type
-        return Gson().fromJson(value, listType)
+    fun fromTypeObjectif(typeObjectif: TypeObjectif): String {
+        return typeObjectif.name // .name retourne le nom de la constante enum ("COURSE")
     }
 
     @TypeConverter
-    fun toObjectifList(list: MutableList<Objectif>?): String {
-        return Gson().toJson(list)
+    fun toTypeObjectif(value: String): TypeObjectif {
+        return TypeObjectif.valueOf(value) // .valueOf() fait la conversion inverse
     }
+
+    @TypeConverter
+    fun fromDurationString(value: String?): Duration? {
+        return value?.let { Duration.parse(it) }
+    }
+
+    @TypeConverter
+    fun toDurationString(duration: Duration?): String? {
+        return duration?.toString()
+    }
+
+
 }

@@ -38,22 +38,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pllrun.Classes.Sexe
 import com.example.pllrun.Classes.Utilisateur
-import com.example.pllrun.Classes.UtilisateurRoomDatabase
 import com.example.pllrun.ui.theme.PllRunTheme
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import androidx.compose.ui.window.Dialog 
-import java.time.format.DateTimeFormatter 
+import androidx.compose.ui.window.Dialog
+import com.example.pllrun.Classes.InventaireRoomDatabase
+import java.time.format.DateTimeFormatter
+
 
 
 class MainActivity : ComponentActivity() {
 
     // Initialize the ViewModel using the factory.
     // This connects the UI to your database logic.
-    private val viewModel: InventoryViewModel by viewModels {
-        InventoryViewModelFactory(
-            UtilisateurRoomDatabase.getDatabase(this).utilisateurDao()
-        )
+    private val viewModel: InventaireViewModel by viewModels {
+        //val database = (application as PllRunApplication).database
+        InventaireViewModelFactory(
+            utilisateurDao = InventaireRoomDatabase.getDatabase(this).utilisateurDao(),
+            objectifDao = InventaireRoomDatabase.getDatabase(this).objectifDao(),
+            )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,7 +64,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PllRunTheme {
-                UserScreen(viewModel = viewModel)
+                UtilisateurScreen(viewModel = viewModel)
                 }
             }
         }
@@ -69,12 +72,12 @@ class MainActivity : ComponentActivity() {
 
 
 @Composable
-fun UserScreen(viewModel: InventoryViewModel) {
+fun UtilisateurScreen(viewModel: InventaireViewModel) {
     // Collect the list of users from the ViewModel as a state.
     // The UI will automatically recompose whenever this list changes.
-    val userList by viewModel.getAllUtilisateurs().collectAsState(initial = emptyList())
+    val utilisateurList by viewModel.getAllUtilisateurs().collectAsState(initial = emptyList())
     val coroutineScope = rememberCoroutineScope()
-    var selectedUser by remember { mutableStateOf<Utilisateur?>(null) }
+    var selectedUtilisateur by remember { mutableStateOf<Utilisateur?>(null) }
     
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Column(
@@ -92,12 +95,12 @@ fun UserScreen(viewModel: InventoryViewModel) {
                 onClick = {
                     coroutineScope.launch {
                         // For this prototype, we add a user with some default test data.
-                        val newUserFirstName = "Antoine"
-                        val newUserLastName = "Dev"
-                        val userCount = userList.size + 1
+                        val newUtilisateurPrenom = "Antoine"
+                        val newUtilisateurNom = "Dev"
+                        val utilisateurCount = utilisateurList.size + 1
                         viewModel.addNewUtilisateur(
-                            nom = "$newUserLastName $userCount",
-                            prenom = newUserFirstName,
+                            nom = "$newUtilisateurPrenom $utilisateurCount",
+                            prenom = newUtilisateurNom,
                             poids = 75.5,
                             taille = 180,
                             dateDeNaissance = LocalDate.of(2003, 5, 9),
@@ -108,26 +111,26 @@ fun UserScreen(viewModel: InventoryViewModel) {
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Add New Test User")
+                Text("Ajouter nouvel utilisateur")
             }
 
             Spacer(modifier = Modifier.height(20.dp))
             HorizontalDivider()
 
-            UserList(
-                users = userList,
-                onUserClick = { user ->
-                    selectedUser = user // Set the selected user to open the dialog
+            UtilisateurList(
+                utilisateurs = utilisateurList,
+                onUtilisateurClick = { utilisateur ->
+                    selectedUtilisateur = utilisateur // Set the selected user to open the dialog
                 }
             )
         }
         // --- SHOW DIALOG ---
         // When selectedUser is not null, the Dialog will be composed
-        selectedUser?.let { user ->
-            UserDetailDialog(
-                user = user,
+        selectedUtilisateur?.let { utilisateur ->
+            UtilisateurDetailDialog(
+                utilisateur = utilisateur,
                 onDismiss = {
-                    selectedUser = null // Close the dialog by resetting the state
+                    selectedUtilisateur = null // Close the dialog by resetting the state
                 }
             )
         }
@@ -135,8 +138,8 @@ fun UserScreen(viewModel: InventoryViewModel) {
 }
 
 @Composable
-fun UserList(users: List<Utilisateur>, onUserClick: (Utilisateur) -> Unit) {
-    if (users.isEmpty()) {
+fun UtilisateurList(utilisateurs: List<Utilisateur>, onUtilisateurClick: (Utilisateur) -> Unit) {
+    if (utilisateurs.isEmpty()) {
         Text(
             text = "No users in the database. Add one!",
             style = MaterialTheme.typography.bodyLarge,
@@ -153,15 +156,15 @@ fun UserList(users: List<Utilisateur>, onUserClick: (Utilisateur) -> Unit) {
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
-            items(users) { user ->
-                UserCard(user = user, onClick = { onUserClick(user) }) // Pass the user to the click handler
+            items(utilisateurs) { utilisateur ->
+                UtilisateurCard(utilisateur = utilisateur, onClick = { onUtilisateurClick(utilisateur) }) // Pass the user to the click handler
             }
         }
     }
 }
 
 @Composable
-fun UserCard(user: Utilisateur, onClick: () -> Unit) {
+fun UtilisateurCard(utilisateur: Utilisateur, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -170,15 +173,15 @@ fun UserCard(user: Utilisateur, onClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "${user.prenom} ${user.nom}",
+                text = "${utilisateur.prenom} ${utilisateur.nom}",
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
             Row {
-                Text("ID: ${user.id}", fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary)
+                Text("ID: ${utilisateur.id}", fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary)
                 Spacer(Modifier.weight(1f))
-                Text("Poids: ${user.poids} kg", fontSize = 14.sp)
+                Text("Poids: ${utilisateur.poids} kg", fontSize = 14.sp)
             }
         }
     }
@@ -186,7 +189,7 @@ fun UserCard(user: Utilisateur, onClick: () -> Unit) {
 
 
 @Composable
-fun UserDetailDialog(user: Utilisateur, onDismiss: () -> Unit) {
+fun UtilisateurDetailDialog(utilisateur: Utilisateur, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Card {
             Column(
@@ -194,7 +197,7 @@ fun UserDetailDialog(user: Utilisateur, onDismiss: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "${user.prenom} ${user.nom}",
+                    text = "${utilisateur.prenom} ${utilisateur.nom}",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -202,15 +205,15 @@ fun UserDetailDialog(user: Utilisateur, onDismiss: () -> Unit) {
                 // Use a standard date format
                 val formatter = DateTimeFormatter.ofPattern("dd MMMM yyyy")
 
-                InfoRow("ID:", user.id.toString())
-                InfoRow("Date of Birth:", user.dateDeNaissance?.format(formatter) ?: "N/A")
-                InfoRow("Sex:", user.sexe.name)
-                InfoRow("Weight:", "${user.poids} kg")
-                InfoRow("Height:", "${user.taille} cm")
-                InfoRow("Experience:", user.niveauExperience.name)
-                InfoRow("VMA:", user.vma?.toString() ?: "N/A")
-                InfoRow("FCM:", user.fcm?.toString() ?: "N/A")
-                InfoRow("FCR:", user.fcr?.toString() ?: "N/A")
+                InfoRow("ID:", utilisateur.id.toString())
+                InfoRow("Date of Birth:", utilisateur.dateDeNaissance?.format(formatter) ?: "N/A")
+                InfoRow("Sex:", utilisateur.sexe.name)
+                InfoRow("Weight:", "${utilisateur.poids} kg")
+                InfoRow("Height:", "${utilisateur.taille} cm")
+                InfoRow("Experience:", utilisateur.niveauExperience.name)
+                InfoRow("VMA:", utilisateur.vma?.toString() ?: "N/A")
+                InfoRow("FCM:", utilisateur.fcm?.toString() ?: "N/A")
+                InfoRow("FCR:", utilisateur.fcr?.toString() ?: "N/A")
 
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
@@ -236,10 +239,10 @@ fun InfoRow(label: String, value: String) {
 
 @Preview(showBackground = true)
 @Composable
-fun UserScreenPreview() {
+fun UtilisateurScreenPreview() {
     PllRunTheme {
         // This is a static preview and won't interact with the ViewModel
-        val previewUsers = listOf(
+        val previewUtilisateurs = listOf(
             Utilisateur(id = 1, nom = "Dupont", prenom = "Jean", poids = 80.0, taille = 185),
             Utilisateur(id = 2, nom = "Martin", prenom = "Marie", poids = 65.0, taille = 170)
         )
@@ -247,10 +250,6 @@ fun UserScreenPreview() {
         Column(modifier = Modifier.padding(16.dp)) {
             Button(onClick = {}, modifier = Modifier.fillMaxWidth()) { Text("Add New Test User") }
             Spacer(modifier = Modifier.height(16.dp))
-            UserList(
-                users = previewUsers,
-                onUserClick = TODO()
-            )
         }
     }
 }

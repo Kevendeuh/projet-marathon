@@ -54,7 +54,6 @@ dependencies {
     // Room
     // 3. MODIFIER LES DÉPENDANCES ROOM
     // Utiliser les variables pour la cohérence
-    implementation("com.google.code.gson:gson:2.13.2") // Or the latest version
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     implementation(libs.firebase.crashlytics.buildtools)

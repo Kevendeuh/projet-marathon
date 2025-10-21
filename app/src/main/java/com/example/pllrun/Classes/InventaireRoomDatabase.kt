@@ -6,21 +6,24 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [Utilisateur::class], version = 1, exportSchema = false)
+@Database(entities = [Utilisateur::class,
+        Objectif::class,
+        Activite::class]
+    , version = 1, exportSchema = false)
 @TypeConverters(Converters::class)
-abstract class UtilisateurRoomDatabase : RoomDatabase() {
+abstract class InventaireRoomDatabase : RoomDatabase() {
 
     abstract fun utilisateurDao(): UtilisateurDao
-
+    abstract fun objectifDao(): ObjectifDao
     companion object {
         @Volatile
-        private var INSTANCE: UtilisateurRoomDatabase? = null
-        fun getDatabase(context: Context): UtilisateurRoomDatabase {
+        private var INSTANCE: InventaireRoomDatabase? = null
+        fun getDatabase(context: Context): InventaireRoomDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
-                    UtilisateurRoomDatabase::class.java,
-                    "utilisateur_database"
+                    InventaireRoomDatabase::class.java,
+                    "Inventaire_database"
                 )
                     .fallbackToDestructiveMigration()
                     .build()

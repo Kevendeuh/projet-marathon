@@ -4,9 +4,11 @@ package com.example.pllrun
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.pllrun.Classes.Activite
 import com.example.pllrun.Classes.JourSemaine
 import com.example.pllrun.Classes.NiveauExperience
 import com.example.pllrun.Classes.Objectif
+import com.example.pllrun.Classes.ObjectifDao
 import com.example.pllrun.Classes.Sexe
 import com.example.pllrun.Classes.Utilisateur
 import com.example.pllrun.Classes.UtilisateurDao
@@ -18,13 +20,13 @@ import java.time.LocalDate
  * View Model to keep a reference to the Inventory repository and an up-to-date list of all items.
  *
  */
-class InventoryViewModel(private val utilisateurDao: UtilisateurDao) : ViewModel() {
+class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private val objectifDao: ObjectifDao) : ViewModel() {
 
     /**
      * Inserts the new Utilisateur into database.
      */
-    fun addNewUtilisateur(nom: String ="", prenom: String = "", dateDeNaissance: LocalDate? = null, sexe: Sexe = Sexe.NON_SPECIFIE, poids: Double = 0.0, taille: Int = 0, vma: Double? = 0.0, fcm: Int? = 0, fcr: Int? = 0, niveauExperience: NiveauExperience = NiveauExperience.DEBUTANT, joursEntrainementDisponibles: List<JourSemaine> = emptyList(), objectifs: MutableList<Objectif> = mutableListOf()  ) {
-        val newUtilisateur = getNewUtilisateurEntry( nom, prenom, dateDeNaissance, sexe, poids, taille, vma, fcm,fcr,niveauExperience,joursEntrainementDisponibles, objectifs)
+    fun addNewUtilisateur(nom: String ="", prenom: String = "", dateDeNaissance: LocalDate? = null, sexe: Sexe = Sexe.NON_SPECIFIE, poids: Double = 0.0, taille: Int = 0, vma: Double? = 0.0, fcm: Int? = 0, fcr: Int? = 0, niveauExperience: NiveauExperience = NiveauExperience.DEBUTANT, joursEntrainementDisponibles: List<JourSemaine> = emptyList()) {
+        val newUtilisateur = getNewUtilisateurEntry( nom, prenom, dateDeNaissance, sexe, poids, taille, vma, fcm,fcr,niveauExperience,joursEntrainementDisponibles )
         insertUtilisateur(newUtilisateur)
     }
 
@@ -37,6 +39,29 @@ class InventoryViewModel(private val utilisateurDao: UtilisateurDao) : ViewModel
             utilisateurDao.insert(utilisateur)
         }
     }
+
+    fun addNewObjectif(objectif: Objectif) {
+        viewModelScope.launch {
+            objectifDao.insertObjectif(objectif)
+        }
+    }
+
+    /**
+     * Insère une nouvelle activité dans la base de données.
+     */
+    fun addNewActivite(activite: Activite) {
+        viewModelScope.launch {
+            objectifDao.insertActivite(activite)
+        }
+    }
+
+    /**
+     * Récupère toutes les activités pour un objectif spécifique.
+     */
+    fun getActivitesForObjectif(objectifId: Long): Flow<List<Activite>> {
+        return objectifDao.getActivitesForObjectif(objectifId)
+    }
+
 
     /**
      * Returns true if the EditTexts are not empty
@@ -65,7 +90,6 @@ class InventoryViewModel(private val utilisateurDao: UtilisateurDao) : ViewModel
         fcr: Int?,
         niveauExperience: NiveauExperience,
         joursEntrainementDisponibles: List<JourSemaine>,
-        objectifs: MutableList<Objectif>
     ): Utilisateur {
         return Utilisateur(
 
@@ -80,7 +104,6 @@ class InventoryViewModel(private val utilisateurDao: UtilisateurDao) : ViewModel
             fcr = fcr,
             niveauExperience = niveauExperience,
             joursEntrainementDisponibles = joursEntrainementDisponibles,
-            objectifs = objectifs
         )
     }
 }
@@ -88,11 +111,11 @@ class InventoryViewModel(private val utilisateurDao: UtilisateurDao) : ViewModel
 /**
  * Factory class to instantiate the [ViewModel] instance.
  */
-class InventoryViewModelFactory(private val utilisateurDao: UtilisateurDao) : ViewModelProvider.Factory {
+class InventaireViewModelFactory(private val utilisateurDao: UtilisateurDao, private val objectifDao: ObjectifDao) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(InventoryViewModel::class.java)) {
+        if (modelClass.isAssignableFrom(InventaireViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return InventoryViewModel(utilisateurDao) as T
+            return InventaireViewModel(utilisateurDao, objectifDao) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
