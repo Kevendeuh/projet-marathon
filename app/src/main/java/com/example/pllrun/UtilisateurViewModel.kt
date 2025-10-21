@@ -10,6 +10,7 @@ import com.example.pllrun.Classes.Objectif
 import com.example.pllrun.Classes.Sexe
 import com.example.pllrun.Classes.Utilisateur
 import com.example.pllrun.Classes.UtilisateurDao
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -27,6 +28,7 @@ class InventoryViewModel(private val utilisateurDao: UtilisateurDao) : ViewModel
         insertUtilisateur(newUtilisateur)
     }
 
+    fun getAllUtilisateurs(): Flow<List<Utilisateur>> = utilisateurDao.getAllUtilisateurs()
     /**
      * Launching a new coroutine to insert an item in a non-blocking way
      */

@@ -22,5 +22,7 @@ interface UtilisateurDao {
 
     @Query("SELECT * from utilisateur WHERE id = :id")
     fun getItem(id: Long): Flow<Utilisateur>
+    @Query("SELECT * from utilisateur")
+    fun getAllUtilisateurs(): Flow<List<Utilisateur>>
 
 }

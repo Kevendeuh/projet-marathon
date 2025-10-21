@@ -21,14 +21,18 @@ class Converters {
 
     // Converter for a list of JourSemaine enums
     @TypeConverter
-    fun fromJourSemaineList(value: String): List<JourSemaine> {
-        // Example: stores ["LUNDI", "MERCREDI"] as "LUNDI,MERCREDI"
-        return value.split(",").map { JourSemaine.valueOf(it) }
+    fun fromJourSemaineList(value: String?): List<JourSemaine> {
+        // 1. Handle null or blank input string
+        if (value.isNullOrBlank()) {
+            return emptyList()
+        }
+        // 2. Filter out any potential empty strings after splitting
+        return value.split(",").filter { it.isNotEmpty() }.map { JourSemaine.valueOf(it.trim()) }
     }
 
     @TypeConverter
     fun toJourSemaineList(list: List<JourSemaine>): String {
-        return list.joinToString(",") { it.name }
+        return list?.joinToString(",") { it.name } ?: ""
     }
 
     // Generic converter for a list of Objects (like Objectif) using Gson
