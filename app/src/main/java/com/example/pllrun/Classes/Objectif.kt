@@ -6,6 +6,7 @@ import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 import java.time.LocalDate
 import java.time.Duration
+import java.time.LocalTime
 
 /**
  * Classe de base ouverte représentant un objectif d'entraînement.
@@ -101,6 +102,10 @@ data class Activite(
     @ColumnInfo(name = "type_activite")
     var typeActivite: TypeObjectif,
     @ColumnInfo(name = "est_complete")
-    var estComplete: Boolean = false
+    var estComplete: Boolean = false,
+    @ColumnInfo(name= "heure_de_debut")
+    var heureDeDebut: LocalTime= LocalTime.now()
+
+
 
 )

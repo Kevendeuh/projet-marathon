@@ -3,6 +3,8 @@ package com.example.pllrun.Classes
 import androidx.room.TypeConverter
 import java.time.LocalDate
 import java.time.Duration
+import java.time.LocalTime
+
 class Converters {
 
     // Converter for LocalDate
@@ -14,6 +16,16 @@ class Converters {
     @TypeConverter
     fun dateToTimestamp(date: LocalDate?): Long? {
         return date?.toEpochDay()
+    }
+
+    @TypeConverter
+    fun fromTimestampToLocalTime(value: Long?): LocalTime? {
+        return value?.let { LocalTime.ofSecondOfDay(it) }
+    }
+
+    @TypeConverter
+    fun localTimeToTimestamp(localTime: LocalTime?): Long? {
+        return localTime?.toSecondOfDay()?.toLong()
     }
 
     // Converter for a list of JourSemaine enums
