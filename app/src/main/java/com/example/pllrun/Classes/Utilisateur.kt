@@ -65,6 +65,7 @@ data class Utilisateur(
     var objectifs: MutableList<Objectif> = mutableListOf(),
     )
 
+
 /**
  * Énumération pour le sexe de l'utilisateur.
  */
