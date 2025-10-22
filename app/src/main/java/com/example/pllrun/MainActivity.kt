@@ -1,5 +1,4 @@
 package com.example.pllrun
-
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,12 +13,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -32,7 +35,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,9 +47,13 @@ import com.example.pllrun.ui.theme.PllRunTheme
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import androidx.compose.ui.window.Dialog
+import com.example.pllrun.Classes.Activite
 import com.example.pllrun.Classes.InventaireRoomDatabase
+import com.example.pllrun.Classes.Objectif
+import com.example.pllrun.Classes.TypeObjectif
+import kotlinx.coroutines.coroutineScope
+import java.time.Duration
 import java.time.format.DateTimeFormatter
-
 
 
 class MainActivity : ComponentActivity() {
@@ -119,6 +128,7 @@ fun UtilisateurScreen(viewModel: InventaireViewModel) {
 
             UtilisateurList(
                 utilisateurs = utilisateurList,
+                viewModel = viewModel,
                 onUtilisateurClick = { utilisateur ->
                     selectedUtilisateur = utilisateur // Set the selected user to open the dialog
                 }
@@ -129,6 +139,7 @@ fun UtilisateurScreen(viewModel: InventaireViewModel) {
         selectedUtilisateur?.let { utilisateur ->
             UtilisateurDetailDialog(
                 utilisateur = utilisateur,
+                viewModel = viewModel,
                 onDismiss = {
                     selectedUtilisateur = null // Close the dialog by resetting the state
                 }
@@ -138,7 +149,9 @@ fun UtilisateurScreen(viewModel: InventaireViewModel) {
 }
 
 @Composable
-fun UtilisateurList(utilisateurs: List<Utilisateur>, onUtilisateurClick: (Utilisateur) -> Unit) {
+fun UtilisateurList(utilisateurs: List<Utilisateur>,
+                    viewModel: InventaireViewModel,
+                    onUtilisateurClick: (Utilisateur) -> Unit) {
     if (utilisateurs.isEmpty()) {
         Text(
             text = "No users in the database. Add one!",
@@ -157,14 +170,25 @@ fun UtilisateurList(utilisateurs: List<Utilisateur>, onUtilisateurClick: (Utilis
                 )
             }
             items(utilisateurs) { utilisateur ->
-                UtilisateurCard(utilisateur = utilisateur, onClick = { onUtilisateurClick(utilisateur) }) // Pass the user to the click handler
+                val objectifs by viewModel.getObjectifsForUtilisateur(utilisateur.id)
+                    .collectAsState(initial = emptyList())
+
+                UtilisateurCard(utilisateur = utilisateur,
+                    objectifs = objectifs,
+                    viewModel = viewModel,
+                    onClick = { onUtilisateurClick(utilisateur) }) // Pass the user to the click handler
             }
         }
     }
 }
 
 @Composable
-fun UtilisateurCard(utilisateur: Utilisateur, onClick: () -> Unit) {
+fun UtilisateurCard(utilisateur: Utilisateur,
+                    objectifs:List<Objectif>,
+                    viewModel: InventaireViewModel,
+                    onClick: () -> Unit) {
+    val coroutineScope = rememberCoroutineScope()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -172,24 +196,131 @@ fun UtilisateurCard(utilisateur: Utilisateur, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "${utilisateur.prenom} ${utilisateur.nom}",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
-            )
+            Row (modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically){
+                Text(
+                    text = "${utilisateur.prenom} ${utilisateur.nom}",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+                Spacer(Modifier.weight(1f))
+
+
+                IconButton(onClick = {
+                    coroutineScope.launch {
+                        viewModel.deleteUtilisateur(utilisateur)
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Supprimer l'objectif",
+                        tint = Color.Gray
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(4.dp))
             Row {
                 Text("ID: ${utilisateur.id}", fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary)
                 Spacer(Modifier.weight(1f))
                 Text("Poids: ${utilisateur.poids} kg", fontSize = 14.sp)
             }
+
+            // Affichage des objectifs et activités de l'utilisateur
+            if (objectifs.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                objectifs.forEach { objectif ->
+                    ObjectifCard(objectif = objectif, viewModel = viewModel)
+                }
+            }
+        }
+    }
+}
+@Composable
+fun ObjectifCard(objectif: Objectif, viewModel: InventaireViewModel) {
+    val activites by viewModel.getActivitesForObjectif(objectif.id).collectAsState(initial = emptyList())
+    val coroutineScope = rememberCoroutineScope()
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Le nom de l'objectif prend l'espace disponible
+                Text(
+                    text = "Objectif: ${objectif.nom}",
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f), // Permet au texte de prendre l'espace
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                // Icône pour supprimer l'objectif entier
+                IconButton(onClick = {
+                    coroutineScope.launch {
+                        viewModel.deleteObjectif(objectif)
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Supprimer l'objectif",
+                        tint = Color.Gray
+                    )
+                }
+            }
+
+            // Liste des activités
+            if (activites.isNotEmpty()) {
+                activites.forEach { activite ->
+                    ActiviteItem(activite = activite, viewModel = viewModel) // Utilise un nouveau composable
+                }
+            } else {
+                Text("  Aucune activité planifiée.", color = Color.Gray)
+            }
         }
     }
 }
 
+@Composable
+fun ActiviteItem(activite: Activite, viewModel: InventaireViewModel) {
+    val coroutineScope = rememberCoroutineScope()
+    val formatter = DateTimeFormatter.ofPattern("EEE dd MMM")
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 8.dp, top = 4.dp)
+    ) {
+        Text(
+            text = "  - ${activite.nom} le ${activite.date.format(formatter)}",
+            modifier = Modifier.weight(1f)
+        )
+        IconButton(
+            onClick = {
+                coroutineScope.launch {
+                    viewModel.deleteActivite(activite)
+                }
+            },
+            modifier = Modifier.size(24.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Supprimer l'activité",
+                tint = Color.Gray
+            )
+        }
+    }
+}
 
 @Composable
-fun UtilisateurDetailDialog(utilisateur: Utilisateur, onDismiss: () -> Unit) {
+fun UtilisateurDetailDialog(utilisateur: Utilisateur,
+                             viewModel: InventaireViewModel,
+                             onDismiss: () -> Unit) {
+    val coroutineScope = rememberCoroutineScope()
     Dialog(onDismissRequest = onDismiss) {
         Card {
             Column(
@@ -216,11 +347,54 @@ fun UtilisateurDetailDialog(utilisateur: Utilisateur, onDismiss: () -> Unit) {
                 InfoRow("FCR:", utilisateur.fcr?.toString() ?: "N/A")
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.End)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Close")
+                    // BOUTON "AJOUTER OBJECTIF"
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                // 1. Créer l'objectif
+                                val nouvelObjectif = Objectif(
+                                    utilisateurId = utilisateur.id,
+                                    nom = "Prépa Marathon Express",
+                                    dateDeDebut = LocalDate.now(),
+                                    dateDeFin = LocalDate.now().plusWeeks(1),
+                                    niveau = utilisateur.niveauExperience,
+                                    tauxDeProgression = 0.0,
+                                    type = TypeObjectif.MARATHON
+                                )
+                                // On ne peut récupérer l'ID qu'après insertion, donc on suppose pour le proto
+                                // Dans une vraie app, on ferait un insert qui retourne l'ID
+                                val objectifId = viewModel.insertAndGetObjectifId(nouvelObjectif).await()
+                                // 2. Créer les activités
+                                for (i in 0..6) { // Pour chaque jour de la semaine
+                                    val dateActivite = LocalDate.now().plusDays(i.toLong())
+                                    val nouvelleActivite = Activite(
+                                        objectifId = objectifId, // Lien vers l'objectif
+                                        nom = "Course du ${dateActivite.dayOfWeek.name.lowercase()}",
+                                        date = dateActivite,
+                                        distanceEffectuee = 0.0,
+                                        tempsEffectue = Duration.ofHours(1),
+                                        typeActivite = TypeObjectif.COURSE,
+                                        estComplete = false
+                                    )
+                                    viewModel.addNewActivite(nouvelleActivite)
+                                }
+
+                                // 3. Fermer le dialogue
+                                onDismiss()
+                            }
+                        }
+                    ) {
+                        Text("Ajouter Objectif")
+                    }
+
+                    // Bouton "Fermer"
+                    Button(onClick = onDismiss) {
+                        Text("Fermer")
+                    }
                 }
             }
         }

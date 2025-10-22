@@ -12,6 +12,8 @@ import com.example.pllrun.Classes.ObjectifDao
 import com.example.pllrun.Classes.Sexe
 import com.example.pllrun.Classes.Utilisateur
 import com.example.pllrun.Classes.UtilisateurDao
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -36,13 +38,37 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
      */
     private fun insertUtilisateur(utilisateur: Utilisateur) {
         viewModelScope.launch {
-            utilisateurDao.insert(utilisateur)
+            utilisateurDao.insertUtilisateur(utilisateur)
         }
     }
 
     fun addNewObjectif(objectif: Objectif) {
         viewModelScope.launch {
             objectifDao.insertObjectif(objectif)
+        }
+    }
+
+    fun insertAndGetObjectifId(objectif: Objectif): Deferred<Long> {
+        return viewModelScope.async {
+            objectifDao.insertObjectif(objectif)
+        }
+    }
+
+    fun deleteObjectif(objectif: Objectif) {
+        viewModelScope.launch {
+            objectifDao.deleteObjectif(objectif)
+        }
+    }
+
+    fun deleteActivite(activite: Activite) {
+        viewModelScope.launch {
+            objectifDao.deleteActivite(activite)
+        }
+    }
+
+    fun deleteUtilisateur(utilisateur: Utilisateur) {
+        viewModelScope.launch {
+            utilisateurDao.deleteUtilisateur(utilisateur)
         }
     }
 
@@ -71,6 +97,13 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
             return false
         }
         return true
+    }
+
+    /**
+     * Retourne tout les objectifs de l'utilisateur
+     */
+    fun getObjectifsForUtilisateur(utilisateurId: Long): Flow<List<Objectif>> {
+        return objectifDao.getObjectifsForUtilisateur(utilisateurId)
     }
 
     /**
@@ -106,6 +139,9 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
             joursEntrainementDisponibles = joursEntrainementDisponibles,
         )
     }
+
+
+
 }
 
 /**

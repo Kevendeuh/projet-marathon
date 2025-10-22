@@ -12,13 +12,13 @@ import kotlinx.coroutines.flow.Flow
 interface UtilisateurDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(utilisateur: Utilisateur)
+    suspend fun insertUtilisateur(utilisateur: Utilisateur)
 
     @Update
-    suspend fun update(utilisateur: Utilisateur)
+    suspend fun updateUtilisateur(utilisateur: Utilisateur)
 
     @Delete
-    suspend fun delete(utilisateur: Utilisateur)
+    suspend fun deleteUtilisateur(utilisateur: Utilisateur)
 
     @Query("SELECT * from utilisateur WHERE id = :id")
     fun getItem(id: Long): Flow<Utilisateur>

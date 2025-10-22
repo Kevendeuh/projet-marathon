@@ -56,6 +56,7 @@ dependencies {
     // Utiliser les variables pour la cohérence
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
+    implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.firebase.crashlytics.buildtools)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.core.ktx)

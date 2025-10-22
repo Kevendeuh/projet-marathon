@@ -12,22 +12,22 @@ import kotlinx.coroutines.flow.Flow
 interface ObjectifDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertObjectif(objectif: Objectif)
+    suspend fun insertObjectif(objectif: Objectif): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertActivite(activite: Activite)
 
     @Update
-    suspend fun update(objectif: Objectif)
+    suspend fun updateObjectif(objectif: Objectif)
 
     @Delete
-    suspend fun delete(objectif: Objectif)
+    suspend fun deleteObjectif(objectif: Objectif)
 
     @Update
-    suspend fun update(activite: Activite)
+    suspend fun updateActivite(activite: Activite)
 
     @Delete
-    suspend fun delete(activite: Activite)
+    suspend fun deleteActivite(activite: Activite)
 
     @Query("SELECT * FROM Objectif WHERE id = :objectifId")
     fun getObjectifById(objectifId: Long): Flow<Objectif>
@@ -35,4 +35,9 @@ interface ObjectifDao {
     // Récupère toutes les activités pour un objectif donné
     @Query("SELECT * FROM activite WHERE objectifId = :objectifId ORDER BY date DESC")
     fun getActivitesForObjectif(objectifId: Long): Flow<List<Activite>>
+
+    @Query("SELECT * FROM Objectif WHERE utilisateurId = :utilisateurId")
+    fun getObjectifsForUtilisateur(utilisateurId: Long): Flow<List<Objectif>>
+
+
 }
