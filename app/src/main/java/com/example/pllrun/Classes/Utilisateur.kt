@@ -60,6 +60,7 @@ data class Utilisateur(
 
     )
 
+
 /**
  * Énumération pour le sexe de l'utilisateur.
  */
