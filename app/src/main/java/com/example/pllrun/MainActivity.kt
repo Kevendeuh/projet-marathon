@@ -64,8 +64,10 @@ import java.time.format.DateTimeFormatter
 import android.widget.DatePicker
 import android.widget.Toast
 import androidx.compose.foundation.gestures.forEach
+import androidx.navigation.compose.rememberNavController
 import com.example.pllrun.Classes.NiveauExperience
 import java.util.Calendar
+import com.example.pllrun.nav.AppNavHost
 
 class MainActivity : ComponentActivity() {
 
@@ -84,6 +86,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PllRunTheme {
+                val navController = rememberNavController()
+
+                // reactiver cette ligne lorsque les ecrans auront ete cree
+                /**AppNavHost(
+                *    navController = navController,
+                *    viewModel = viewModel
+                )**/
                 UtilisateurScreen(viewModel = viewModel)
                 }
             }

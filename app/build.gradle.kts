@@ -54,10 +54,12 @@ dependencies {
     // Room
     // 3. MODIFIER LES DÉPENDANCES ROOM
     // Utiliser les variables pour la cohérence
+    implementation("androidx.navigation:navigation-compose:2.9.5")
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.firebase.crashlytics.buildtools)
+    implementation(libs.androidx.navigation.runtime.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
