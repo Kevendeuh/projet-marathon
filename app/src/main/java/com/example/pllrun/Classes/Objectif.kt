@@ -32,19 +32,19 @@ data class Objectif(
     @PrimaryKey(autoGenerate = true)
     val id: Long=0,
     @ColumnInfo(name = "nom")
-    val nom: String,
+    var nom: String,
     @ColumnInfo(name = "dateDeDebut")
-    val dateDeDebut: LocalDate,
+    var dateDeDebut: LocalDate,
     @ColumnInfo(name = "dateDeFin")
-    val dateDeFin: LocalDate,
+    var dateDeFin: LocalDate,
     @ColumnInfo(name = "niveau")
-    val niveau: NiveauExperience,
+    var niveau: NiveauExperience,
     @ColumnInfo(name = "taux_de_progression")
-    val tauxDeProgression: Double,
+    var tauxDeProgression: Double,
     @ColumnInfo(name = "type")
-    val type: TypeObjectif,
+    var type: TypeObjectif,
     @ColumnInfo(index = true) // Indexing foreign keys is good for performance
-    val utilisateurId: Long,
+    var utilisateurId: Long,
 ) {
     /**
      * Propriété calculée pour obtenir la durée totale de l'objectif en jours.
@@ -54,7 +54,7 @@ data class Objectif(
 }
 
 enum class TypeObjectif {
-    COURSE,MARATHON
+    COURSE,MARATHON,ETIREMENT,CARDIO,AUTRE
 }
 
 /**
@@ -64,6 +64,11 @@ enum class TypeObjectif {
 * @param distanceEffectuee The actual distance covered during the activity.
 * @param tempsEffectue The actual time taken for the activity.
 * @param typeActivite The type of activity (e.g., "Marathon").
+ * @param estComplete A flag indicating whether the activity has been completed.
+ * @param id The unique identifier for the activity.
+ * @param nom The name of the activity.
+ * @param description An optional description of the activity.
+ * @param date The date this activity took place.
 */
 @Entity(
     tableName = "activite",
@@ -84,16 +89,18 @@ data class Activite(
 
     // Activity-specific properties
     @ColumnInfo(name = "nom")
-    val nom: String, // e.g., "Sortie Longue Semaine 1"
+    var nom: String, // e.g., "Sortie Longue Semaine 1"
+    @ColumnInfo(name = "description")
+    var description: String = "", // Optional description of the activity
     @ColumnInfo(name = "date")
-    val date: LocalDate, // The date this activity took place
+    var date: LocalDate, // The date this activity took place
     @ColumnInfo(name = "distance_effectuee")
-    val distanceEffectuee: Double, // in km
+    var distanceEffectuee: Double, // in km
     @ColumnInfo(name = "temps_effectue")
-    val tempsEffectue: Duration,   // actual duration of the run
+    var tempsEffectue: Duration,   // actual duration of the run
     @ColumnInfo(name = "type_activite")
-    val typeActivite: TypeObjectif,
+    var typeActivite: TypeObjectif,
     @ColumnInfo(name = "est_complete")
-    val estComplete: Boolean = false
+    var estComplete: Boolean = false
 
 )

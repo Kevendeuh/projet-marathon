@@ -88,6 +88,24 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
         return objectifDao.getActivitesForObjectif(objectifId)
     }
 
+    fun updateUtilisateur(utilisateur: Utilisateur) {
+        viewModelScope.launch {
+            utilisateurDao.updateUtilisateur(utilisateur)
+        }
+    }
+
+    fun updateObjectif(objectif: Objectif) {
+        viewModelScope.launch {
+            objectifDao.updateObjectif(objectif)
+        }
+    }
+
+    fun updateActivite(activite: Activite) {
+        viewModelScope.launch {
+            objectifDao.updateActivite(activite)
+        }
+    }
+
 
     /**
      * Returns true if the EditTexts are not empty
