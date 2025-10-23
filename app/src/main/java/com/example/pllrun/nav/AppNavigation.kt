@@ -3,6 +3,11 @@ package com.example.pllrun.nav
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
@@ -11,12 +16,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.navigation.navArgument
-//import com.example.pllrun.AccueilScreen // Nous allons créer cet écran
+import kotlinx.coroutines.delay
+//import com.example.pllrun.AccueilScreen
 import com.example.pllrun.InventaireViewModel
 
-/**
- * Énumération pour définir les routes de l'application de manière sûre.
- */
 enum class AppScreen {
     Accueil,
     Enregistrement,
@@ -25,60 +28,74 @@ enum class AppScreen {
     PlanningSport
 }
 
-/**
- * Le composant principal qui gère le graphe de navigation.
- */
 @Composable
 fun AppNavHost(
     navController: NavHostController,
     viewModel: InventaireViewModel
 ) {
-   NavHost(
+    // État pour vérifier si l'utilisateur est inscrit
+    var isUserRegistered by remember { mutableStateOf(false) }
+
+    NavHost(
         navController = navController,
-        startDestination = AppScreen.Accueil.name // L'écran de démarrage
+        startDestination = AppScreen.Accueil.name
     ) {
-        // Définition de chaque écran dans le graphe de navigation
         composable(route = AppScreen.Accueil.name) {
-            // Votre ancien 'UtilisateurScreen' devient l'écran d'accueil
-            /**AccueilScreen(
-               * viewModel = viewModel,
-                *onNavigate = { route -> navController.navigate(route) }
-            )**/
+            AccueilScreen(
+                onTimeout = {
+                    // Après 3 secondes, naviguer vers l'écran approprié
+                    if (isUserRegistered) {
+                        navController.navigate(AppScreen.Hub.name) {
+                            popUpTo(AppScreen.Accueil.name) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(AppScreen.Enregistrement.name) {
+                            popUpTo(AppScreen.Accueil.name) { inclusive = true }
+                        }
+                    }
+                }
+            )
         }
         composable(route = AppScreen.Enregistrement.name) {
-            EnregistrementScreen() // Écran vide pour l'instant
+            EnregistrementScreen(
+                onNext = {
+                    navController.navigate(AppScreen.Objectif.name)
+                },
+                onSave = {
+                    // Sauvegarder les infos et marquer l'utilisateur comme inscrit
+                    isUserRegistered = true
+                }
+            )
         }
         composable(route = AppScreen.Objectif.name) {
-            ObjectifScreen() // Écran vide pour l'instant
+            ObjectifScreen(
+                onSaveAndNext = {
+                    navController.navigate(AppScreen.Hub.name) {
+                        popUpTo(AppScreen.Accueil.name) { inclusive = true }
+                    }
+                },
+                onSkip = {
+                    navController.navigate(AppScreen.Hub.name) {
+                        popUpTo(AppScreen.Accueil.name) { inclusive = true }
+                    }
+                }
+            )
         }
         composable(route = AppScreen.Hub.name) {
-            HubScreen() // Écran vide pour l'instant
+            HubScreen(
+                onEditProfile = {
+                    navController.navigate(AppScreen.Enregistrement.name)
+                },
+                onPlanningSport = {
+                    navController.navigate(AppScreen.PlanningSport.name)
+                },
+                onAddGoal = {
+                    navController.navigate(AppScreen.Objectif.name)
+                }
+            )
         }
         composable(route = AppScreen.PlanningSport.name) {
-            PlanningSportScreen() // Écran vide pour l'instant
+            PlanningSportScreen()
         }
     }
-}
-
-// --- Écrans Vides (Placeholders) ---
-// Vous pourrez développer ces écrans plus tard.
-
-@Composable
-fun EnregistrementScreen() {
-    Text("Écran d'Enregistrement")
-}
-
-@Composable
-fun ObjectifScreen() {
-    Text("Écran des Objectifs")
-}
-
-@Composable
-fun HubScreen() {
-    Text("Écran Hub")
-}
-
-@Composable
-fun PlanningSportScreen() {
-    Text("Écran du Planning Sportif")
 }
