@@ -43,6 +43,8 @@ data class Utilisateur(
     // --- Paramètres physiologiques (modifiables) ---
     @ColumnInfo(name = "poids")
     var poids: Double = 0.0, // en kg
+    @ColumnInfo(name = "poids_cible")
+    var poidsCible: Double = 0.0, // en kg
     @ColumnInfo(name = "taille")
     var taille: Int = 0,     // en cm
     @ColumnInfo(name = "vma")

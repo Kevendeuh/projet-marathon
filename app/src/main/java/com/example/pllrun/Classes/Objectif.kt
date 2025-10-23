@@ -46,17 +46,33 @@ data class Objectif(
     var type: TypeObjectif,
     @ColumnInfo(index = true) // Indexing foreign keys is good for performance
     var utilisateurId: Long,
+    @ColumnInfo(name = "est_complete")
+    var estComplete: Boolean = false,
+    @ColumnInfo(name = "type_decoupage")
+    var typeDecoupage: TypeDecoupage= TypeDecoupage.UNIQUE,
+    @ColumnInfo(name = "description")
+    var description: String = "",
+    @ColumnInfo(name = "est_valide")
+    var estValide: Boolean = false,
+
 ) {
     /**
      * Propriété calculée pour obtenir la durée totale de l'objectif en jours.
      */
-    val duree: Long
-        get() = Duration.between(dateDeDebut.atStartOfDay(), dateDeFin.atStartOfDay()).toDays()
 }
 
 enum class TypeObjectif {
     COURSE,MARATHON,ETIREMENT,CARDIO,AUTRE
 }
+
+enum class  TypeIntensite {
+    LONG,MOYEN,COURT
+}
+
+enum class TypeDecoupage {
+    TEMPORISE,UNIQUE
+}
+
 
 /**
 * Represents a single training activity (e.g., a specific run) linked to a parent Objectif.

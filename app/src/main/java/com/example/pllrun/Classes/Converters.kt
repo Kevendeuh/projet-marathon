@@ -64,5 +64,14 @@ class Converters {
         return duration?.toString()
     }
 
+    @TypeConverter
+    fun fromTypeDecoupage(typeDecoupage: TypeDecoupage): String {
+        return typeDecoupage.name // .name retourne le nom de la constante enum ("UNIQUE")
+    }
+
+    @TypeConverter
+    fun toTypeDecoupage(value: String): TypeDecoupage {
+        return TypeDecoupage.valueOf(value) // .valueOf() fait la conversion inverse
+    }
 
 }
