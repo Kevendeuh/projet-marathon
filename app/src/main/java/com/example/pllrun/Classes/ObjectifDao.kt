@@ -8,6 +8,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 
 @Dao
 interface ObjectifDao {
@@ -63,5 +64,7 @@ interface ObjectifDao {
     @Query("UPDATE activite SET objectifId = NULL WHERE objectifId = :objectifId")
     suspend fun unparentActivitesFromObjectif(objectifId: Long)
 
+    @Query("SELECT * FROM activite WHERE date = :date")
+    fun getActivitesForDay(date: LocalDate): Flow<List<Activite>>
     // Gardez les méthodes @Delete si vous en avez besoin pour une suppression simple
 }

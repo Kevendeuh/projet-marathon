@@ -76,10 +76,10 @@ enum class Sexe {
 /**
  * Énumération pour le niveau d'expérience en course à pied.
  */
-enum class NiveauExperience {
-    DEBUTANT,       // Moins de 6 mois de course régulière
-    INTERMEDIAIRE,  // Entre 6 mois et 2 ans, a déjà couru des 10km ou semi-marathons
-    AVANCE          // Plus de 2 ans, plusieurs marathons à son actif
+enum class NiveauExperience(val facteur: Float) {
+    DEBUTANT(1.2F),       // Moins de 6 mois de course régulière
+    INTERMEDIAIRE(1.55F),  // Entre 6 mois et 2 ans, a déjà couru des 10km ou semi-marathons
+    AVANCE(1.9F)         // Plus de 2 ans, plusieurs marathons à son actif
 }
 
 /**

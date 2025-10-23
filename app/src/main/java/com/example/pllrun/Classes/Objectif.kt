@@ -120,7 +120,10 @@ data class Activite(
     @ColumnInfo(name = "est_complete")
     var estComplete: Boolean = false,
     @ColumnInfo(name= "heure_de_debut")
-    var heureDeDebut: LocalTime= LocalTime.now()
+    var heureDeDebut: LocalTime= LocalTime.now(),
+    @ColumnInfo(name= "niveau")
+    var niveau: NiveauExperience= NiveauExperience.DEBUTANT
+
 
 
 

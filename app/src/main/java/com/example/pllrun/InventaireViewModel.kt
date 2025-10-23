@@ -88,6 +88,12 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
         return objectifDao.getActivitesForObjectif(objectifId)
     }
 
+    fun getActivitesForDay( date: LocalDate): Flow<List<Activite>> {
+        return objectifDao.getActivitesForDay(date)
+
+    }
+
+
     fun updateUtilisateur(utilisateur: Utilisateur) {
         viewModelScope.launch {
             utilisateurDao.updateUtilisateur(utilisateur)
