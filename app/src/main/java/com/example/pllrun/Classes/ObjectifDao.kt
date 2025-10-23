@@ -66,5 +66,21 @@ interface ObjectifDao {
 
     @Query("SELECT * FROM activite WHERE date = :date")
     fun getActivitesForDay(date: LocalDate): Flow<List<Activite>>
-    // Gardez les méthodes @Delete si vous en avez besoin pour une suppression simple
+
+    @Query("SELECT COUNT(*) FROM activite WHERE objectifId = :objectifId")
+    suspend fun countTotalActivitesForObjectif(objectifId: Long): Int
+
+    /**
+     * Compte le nombre d'activités déjà complétées pour un objectif.
+     */
+    @Query("SELECT COUNT(*) FROM activite WHERE objectifId = :objectifId AND est_complete = 1") // 1 pour 'true' en SQLite
+    suspend fun countCompletedActivitesForObjectif(objectifId: Long): Int
+
+    /**
+     * Met à jour uniquement le taux de progression d'un objectif spécifique.
+     * C'est plus efficace que de mettre à jour l'objet entier.
+     */
+    @Query("UPDATE Objectif SET taux_de_progression = :newProgress WHERE id = :objectifId")
+    suspend fun updateObjectifProgress(objectifId: Long, newProgress: Double)
+
 }

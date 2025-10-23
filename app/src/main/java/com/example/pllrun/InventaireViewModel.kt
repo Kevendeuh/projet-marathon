@@ -123,6 +123,28 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
         }
     }
 
+    fun recalculateObjectifProgress(objectifId: Long?) {
+        // Si l'activité n'est liée à aucun objectif, on ne fait rien.
+        if (objectifId == null) return
+
+        viewModelScope.launch {
+            // Récupère le nombre total d'activités et le nombre d'activités complétées
+            val totalActivites = objectifDao.countTotalActivitesForObjectif(objectifId)
+            val completedActivites = objectifDao.countCompletedActivitesForObjectif(objectifId)
+
+            // Évite la division par zéro si un objectif n'a pas encore d'activités
+            if (totalActivites > 0) {
+                // Calcule le ratio d'activités complétées (une valeur entre 0.0 et 1.0)
+                val completionRatio = completedActivites.toDouble() / totalActivites.toDouble()
+
+                // Applique ce ratio à la progression maximale de 80%
+                val newProgress = completionRatio * 80.0
+
+                // Met à jour la base de données avec le nouveau taux de progression
+                objectifDao.updateObjectifProgress(objectifId, newProgress)
+            }
+        }
+    }
 
 
     /**
