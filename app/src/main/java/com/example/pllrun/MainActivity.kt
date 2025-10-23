@@ -360,7 +360,7 @@ fun ObjectifCard(
                 // Icône pour supprimer l'objectif entier
                 IconButton(onClick = {
                     coroutineScope.launch {
-                        viewModel.deleteObjectif(objectif)
+                        viewModel.deleteObjectifAndActivites(objectif)
                     }
                 }) {
                     Icon(

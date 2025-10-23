@@ -94,7 +94,7 @@ enum class TypeDecoupage {
             entity = Objectif::class,
             parentColumns = ["id"],
             childColumns = ["objectifId"],
-            onDelete = ForeignKey.CASCADE // If the parent Objectif is deleted, delete this activity
+            onDelete = ForeignKey.SET_NULL // If the parent Objectif is deleted, delete this activity
         )
     ]
 )
@@ -102,7 +102,7 @@ data class Activite(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     @ColumnInfo(index = true)
-    val objectifId: Long, // Foreign key linking to the Objectif table
+    val objectifId: Long?, // Foreign key linking to the Objectif table
 
     // Activity-specific properties
     @ColumnInfo(name = "nom")
