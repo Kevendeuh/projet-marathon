@@ -3,6 +3,9 @@ package com.example.pllrun
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pllrun.Classes.*  // Utilisateur, UserParams, PlannerService, FullPlan
+import com.example.pllrun.calculator.FullPlan
+import com.example.pllrun.calculator.PlannerService
+import com.example.pllrun.calculator.UserParams
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

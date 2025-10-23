@@ -1,5 +1,7 @@
-package com.example.pllrun.Classes
+package com.example.pllrun.calculator
 
+import com.example.pllrun.Classes.NiveauExperience
+import com.example.pllrun.Classes.Utilisateur
 import java.time.LocalDate
 
 /**

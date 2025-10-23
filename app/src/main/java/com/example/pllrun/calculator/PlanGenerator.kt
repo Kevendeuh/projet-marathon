@@ -1,5 +1,9 @@
-package com.example.pllrun.Classes
+package com.example.pllrun.calculator
 
+import com.example.pllrun.Classes.JourSemaine
+import com.example.pllrun.Classes.NiveauExperience
+import com.example.pllrun.Classes.Sexe
+import com.example.pllrun.Classes.Utilisateur
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.Period
@@ -88,7 +92,7 @@ class TrainingPlanGenerator {
                 level = user.niveauExperience,
                 available = availableDays
             )
-            weeks += WeeklyBlock(weekIndex, phase, weekDays)
+            weeks +=WeeklyBlock(weekIndex, phase, weekDays)
 
             currentStart = currentStart.plusWeeks(1)
             weekIndex += 1
@@ -163,7 +167,10 @@ class TrainingPlanGenerator {
         for (dow in scheduleOrder) {
             val date = dateOf(start, dow)
             if (placed >= daysPerWeek) {
-                out += TrainingDay(date, Workout(TrainingIntensity.REST, 0, "Repos / mobilité 10–15'"))
+                out +=TrainingDay(
+                    date,
+                    Workout(TrainingIntensity.REST, 0, "Repos / mobilité 10–15'")
+                )
                 continue
             }
 
@@ -180,10 +187,14 @@ class TrainingPlanGenerator {
                         TrainingIntensity.TEMPO to "Tempo Z3 (ex: 20–30' en continu)"
                     Workout(kind, quality, note)
                 }
-                else -> Workout(TrainingIntensity.EASY, baseEasy, "Footing Z1–Z2 ; respiration nasale.")
+                else -> Workout(
+                    TrainingIntensity.EASY,
+                    baseEasy,
+                    "Footing Z1–Z2 ; respiration nasale."
+                )
             }
 
-            out += TrainingDay(date, slot)
+            out +=TrainingDay(date, slot)
             if (slot.kind != TrainingIntensity.REST) placed += 1
         }
 
@@ -191,7 +202,7 @@ class TrainingPlanGenerator {
         val restDays = ordered - scheduleOrder.toSet()
         for (dow in restDays) {
             val date = dateOf(start, dow)
-            out += TrainingDay(date, Workout(TrainingIntensity.REST, 0, "Repos"))
+            out +=TrainingDay(date, Workout(TrainingIntensity.REST, 0, "Repos"))
         }
 
         return out.sortedBy { it.date.dayOfWeek.value }

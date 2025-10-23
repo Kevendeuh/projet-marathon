@@ -10,11 +10,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.pllrun.Classes.DailyNutrition
-import com.example.pllrun.Classes.DailySleep
-import com.example.pllrun.Classes.FullPlan
-import com.example.pllrun.Classes.TrainingDay
-import com.example.pllrun.Classes.TrainingIntensity
+import com.example.pllrun.calculator.DailyNutrition
+import com.example.pllrun.calculator.DailySleep
+import com.example.pllrun.calculator.FullPlan
+import com.example.pllrun.calculator.TrainingDay
+import com.example.pllrun.calculator.TrainingIntensity
 import com.example.pllrun.PlannerUiState
 import kotlinx.coroutines.flow.StateFlow
 import java.time.LocalDate
