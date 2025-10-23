@@ -19,6 +19,11 @@ import androidx.navigation.navArgument
 import kotlinx.coroutines.delay
 //import com.example.pllrun.AccueilScreen
 import com.example.pllrun.InventaireViewModel
+import com.example.pllrun.screens.AccueilScreen
+import com.example.pllrun.screens.EnregistrementScreen
+import com.example.pllrun.screens.ObjectifScreen
+import com.example.pllrun.screens.HubScreen
+import com.example.pllrun.screens.PlanningSportScreen
 
 enum class AppScreen {
     Accueil,

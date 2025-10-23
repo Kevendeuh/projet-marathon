@@ -86,14 +86,18 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PllRunTheme {
-                val navController = rememberNavController()
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    val navController = rememberNavController()
 
-                // reactiver cette ligne lorsque les ecrans auront ete cree
-                /**AppNavHost(
-                *    navController = navController,
-                *    viewModel = viewModel
-                )**/
-                UtilisateurScreen(viewModel = viewModel)
+                    AppNavHost(
+                        navController = navController,
+                        viewModel = viewModel
+                    )
+                }
+
                 }
             }
         }
