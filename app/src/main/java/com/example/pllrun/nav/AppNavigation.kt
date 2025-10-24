@@ -24,6 +24,8 @@ import com.example.pllrun.screens.EnregistrementScreen
 import com.example.pllrun.screens.ObjectifScreen
 import com.example.pllrun.screens.HubScreen
 import com.example.pllrun.screens.PlanningSportScreen
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 
 enum class AppScreen {
     Accueil,
@@ -39,28 +41,19 @@ fun AppNavHost(
     viewModel: InventaireViewModel
 ) {
     // État pour vérifier si l'utilisateur est inscrit
-    var isUserRegistered by remember { mutableStateOf(false) }
+    var isUserRegistered = false
 
     NavHost(
         navController = navController,
         startDestination = AppScreen.Accueil.name
     ) {
         composable(route = AppScreen.Accueil.name) {
-            AccueilScreen(
-                onTimeout = {
-                    // Après 3 secondes, naviguer vers l'écran approprié
-                    if (isUserRegistered) {
-                        navController.navigate(AppScreen.Hub.name) {
-                            popUpTo(AppScreen.Accueil.name) { inclusive = true }
-                        }
-                    } else {
-                        navController.navigate(AppScreen.Enregistrement.name) {
-                            popUpTo(AppScreen.Accueil.name) { inclusive = true }
-                        }
-                    }
-                }
-            )
+            AccueilScreen(navController = navController,
+                viewModel = viewModel)
+
+
         }
+
         composable(route = AppScreen.Enregistrement.name) {
             EnregistrementScreen(
                 onNext = {
@@ -98,11 +91,16 @@ fun AppNavHost(
                 },
                 onAddGoal = {
                     navController.navigate(AppScreen.Objectif.name)
-                }
+                },
+                viewModel = viewModel
             )
         }
         composable(route = AppScreen.PlanningSport.name) {
             PlanningSportScreen()
         }
     }
+}
+
+suspend fun verifConnexion(viewModel: InventaireViewModel): Boolean{
+    return viewModel.getAllUtilisateurs().first().isEmpty()
 }
