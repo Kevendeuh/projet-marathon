@@ -12,6 +12,7 @@ room = "2.8.2"
 ksp = "2.2.10-2.0.2"
 firebaseCrashlyticsBuildtools = "3.0.6"
 navigationRuntimeKtx = "2.9.5"
+coreI18n = "1.0.0"
 
 [libraries]
 
@@ -38,6 +39,7 @@ androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-te
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
 androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navigation-runtime-ktx", version.ref = "navigationRuntimeKtx" }
+androidx-core-i18n = { group = "androidx.core", name = "core-i18n", version.ref = "coreI18n" }
 
 [plugins]
 

@@ -1,9 +1,11 @@
 package com.example.pllrun.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,14 +24,21 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,8 +58,10 @@ import androidx.compose.ui.unit.sp
 import com.example.pllrun.Classes.NiveauExperience
 import com.example.pllrun.Classes.Utilisateur
 import com.example.pllrun.Classes.JourSemaine
-
-
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import androidx.compose.ui.platform.LocalContext
 import com.example.pllrun.Classes.TypeDecoupage
 import com.example.pllrun.Classes.Sexe
 import com.example.pllrun.InventaireViewModel
@@ -71,8 +82,7 @@ fun EnregistrementScreen(
     var prenom by remember { mutableStateOf("") }
     var poids by remember { mutableStateOf("") }
     var taille by remember { mutableStateOf("") }
-    var age by remember { mutableStateOf("") }
-
+    var dateDeNaissance by remember { mutableStateOf<LocalDate?>(LocalDate.now()) }
     // Nouveaux états pour les champs ajoutés
     var sexe by remember { mutableStateOf("") }
     var niveauExperience by remember { mutableStateOf("") }
@@ -83,22 +93,39 @@ fun EnregistrementScreen(
 
     // États pour les jours d'entraînement
     var joursSelectionnes by remember { mutableStateOf(setOf<JourSemaine>()) }
-    var lundi by remember { mutableStateOf(false) }
-    var mardi by remember { mutableStateOf(false) }
-    var mercredi by remember { mutableStateOf(false) }
-    var jeudi by remember { mutableStateOf(false) }
-    var vendredi by remember { mutableStateOf(false) }
-    var samedi by remember { mutableStateOf(false) }
-    var dimanche by remember { mutableStateOf(false) }
 
     // États pour les menus déroulants
     var sexeExpanded by remember { mutableStateOf(false) }
     var niveauExpanded by remember { mutableStateOf(false) }
-
+    var showDatePicker by remember { mutableStateOf(false) } // État pour contrôler l'ouverture du dialogue
     // Options pour les menus déroulants
     var sex by remember { mutableStateOf(Sexe.NON_SPECIFIE) }
     var niveau by remember { mutableStateOf(NiveauExperience.DEBUTANT) }
+    val isButtonEnabled = remember(nom, prenom, dateDeNaissance, joursSelectionnes, poidsCible) {
+        isFormValid(nom=nom, prenom=prenom, dateDeNaissance= dateDeNaissance , poids = poids.toDoubleOrNull(), taille=taille.toIntOrNull(), joursEntrainementDisponibles = joursSelectionnes.toList() )
+    }
+    val context = LocalContext.current
 
+
+    // --- Fonction de Sauvegarde ---
+    fun saveUser() {
+
+        viewModel?.addNewUtilisateur(
+            nom = nom,
+            prenom = prenom,
+            dateDeNaissance = dateDeNaissance,
+            sexe = sex,
+            // On ne peut pas avoir poids et poidsCible, on utilise poidsCible comme poids initial pour l'exemple
+            poids = poidsCible.toDoubleOrNull() ?: 0.0,
+            // La taille n'est pas dans le formulaire, on met une valeur par défaut
+            taille = 0,
+            vma = vma.toDoubleOrNull(),
+            fcm = fcm.toIntOrNull(),
+            fcr = fcr.toIntOrNull(),
+            niveauExperience = niveau,
+            joursEntrainementDisponibles = joursSelectionnes.toList() // On convertit le Set en List
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -213,7 +240,7 @@ fun EnregistrementScreen(
                 }
             }
 
-            // Deuxième ligne : Poids, Taille et Âge
+            // Deuxième ligne : Poids, Taille
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp) // Espacement réduit
@@ -270,22 +297,52 @@ fun EnregistrementScreen(
                     )
                 }
 
-                Column(modifier = Modifier.weight(1f)) {
+                //date de naissance
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { showDatePicker = true }, // Ouvre le dialogue au clic
+                ) {
+                    // Label pour le champ
                     Text(
-                        text = "Âge",
-                        fontSize = 12.sp, // Réduit
+                        text = "Date de naissance",fontSize = 12.sp,
                         color = Color.Gray,
                         modifier = Modifier.padding(bottom = 2.dp)
                     )
-                    OutlinedTextField(
-                        value = age,
-                        onValueChange = { age = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(6.dp),
-                        textStyle = TextStyle(fontSize = 14.sp), // Réduit
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
+                    Box {
+
+                        // Champ de texte cliquable qui affiche la date
+                        OutlinedTextField(
+                            value = dateDeNaissance?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                                ?: "", onValueChange = { /* Ne fait rien car readOnly */ },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showDatePicker = true }, // Ouvre le dialogue au clic
+                            readOnly = true, // Empêche la saisie au clavier
+                            shape = RoundedCornerShape(6.dp),
+                            textStyle = TextStyle(fontSize = 14.sp),
+                            placeholder = {
+                                Text(
+                                    modifier = Modifier.clickable { showDatePicker = true },
+                                    text = "JJ/MM/AAAA",
+                                    color = Color.Gray,
+                                    fontSize = 14.sp
+                                )
+                            }
+
+                        )
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize() // Prend exactement la même taille que le OutlinedTextField
+                                .clickable(
+                                    onClick = { showDatePicker = true },
+                                    // Enlève l'ondulation visuelle du clic si vous le souhaitez
+                                    indication = null,
+                                    interactionSource = remember { MutableInteractionSource() }
+                                )
+                        )
+                    }
                 }
             }
 
@@ -397,40 +454,16 @@ fun EnregistrementScreen(
             )
 
             // --- Section Jours d'entraînement ---
-            Text(
-                "Jours d'entraînement préférés",
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-
-            // Boucle pour générer les DayCheckbox
-            val jours = JourSemaine.entries.chunked(3) // Divise les 7 jours en groupes de 3
-            Column {
-                jours.forEach { rowItems ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceAround
-                    ) {
-                        rowItems.forEach { day ->
-                            DayCheckbox(
-                                day = day,
-                                checked = joursSelectionnes.contains(day),
-                                onCheckedChange = { isChecked ->
-                                    joursSelectionnes = if (isChecked) {
-                                        joursSelectionnes + day
-                                    } else {
-                                        joursSelectionnes - day
-                                    }
-                                }
-                            )
-                        }
-                        // Pour aligner les colonnes si la dernière ligne n'a pas 3 jours
-                        if (rowItems.size < 3) {
-                            Spacer(modifier = Modifier.weight((3 - rowItems.size).toFloat()))
-                        }
+            DayCheckboxGrid(
+                joursSelectionnes = joursSelectionnes,
+                onDaySelectionChanged = { day, isChecked ->
+                    joursSelectionnes = if (isChecked) {
+                        joursSelectionnes + day
+                    } else {
+                        joursSelectionnes - day
                     }
                 }
-            }
+            )
 
                 // Section Informations optionnelles
                 Text(
@@ -567,54 +600,96 @@ fun EnregistrementScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Bouton Suivant
-            Button(
-                onClick = {
-                    onSave()
+
+        // Bouton Suivant
+        Button(
+            onClick = {
+                if (isButtonEnabled) {
+                    saveUser()
                     onNext()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp), // Légèrement réduit
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFF751F)
-                )
-            ) {
-                Text(
-                    text = "Suivant",
-                    fontSize = 16.sp, // Réduit
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                } else {
+                    Toast.makeText(context, "Veuillez remplir tous les champs obligatoires.", Toast.LENGTH_SHORT).show()
+                }
+            },
+            enabled = isButtonEnabled,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF751F), disabledContainerColor = Color.LightGray)
+        ) {
+            Text("Suivant", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        }
+    }
+
+
+    // --- Dialogue DatePicker ---
+    if (showDatePicker) {
+        // Initialise l'état du DatePicker. On peut pré-sélectionner une date (ex: 18 ans en arrière).
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = dateDeNaissance?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
+                ?: LocalDate.now().minusYears(18).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    // Empêche de sélectionner une date dans le futur
+                    return utcTimeMillis <= Instant.now().toEpochMilli()
+                }
             }
-        }
-
-    // --- Fonction de Sauvegarde ---
-    fun saveUser() {
-        // Calcul d'une date de naissance approximative à partir de l'âge
-        val calculatedBirthDate = age.toIntOrNull()?.let {
-            LocalDate.now().minusYears(it.toLong())
-        }
-
-        viewModel?.addNewUtilisateur(
-            nom = nom,
-            prenom = prenom,
-            dateDeNaissance = calculatedBirthDate,
-            sexe = sex,
-            // On ne peut pas avoir poids et poidsCible, on utilise poidsCible comme poids initial pour l'exemple
-            poids = poidsCible.toDoubleOrNull() ?: 0.0,
-            // La taille n'est pas dans le formulaire, on met une valeur par défaut
-            taille = 0,
-            vma = vma.toDoubleOrNull(),
-            fcm = fcm.toIntOrNull(),
-            fcr = fcr.toIntOrNull(),
-            niveauExperience = niveau,
-            joursEntrainementDisponibles = joursSelectionnes.toList() // On convertit le Set en List
         )
-    }
-    }
 
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let {
+                            // Convertit le timestamp (Long) en LocalDate
+                            dateDeNaissance = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                        }
+                        showDatePicker = false // Ferme le dialogue
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showDatePicker = false }
+                ) {
+                    Text("Annuler")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+    }
+private fun isFormValid(
+    nom: String?,
+    prenom: String?,
+    dateDeNaissance: LocalDate?,
+    poids: Double?,
+    taille: Int?,
+    joursEntrainementDisponibles: List<JourSemaine>?
+): Boolean {
+    if(
+        nom.isNullOrBlank() ||
+        prenom.isNullOrBlank() ||
+        dateDeNaissance == null ||
+        poids == null ||
+        taille == null ||
+        joursEntrainementDisponibles.isNullOrEmpty()
+    ){
+        return false
+    }
+    val ageAsInt =  LocalDate.now().year - dateDeNaissance.year
+    return  nom.isNotBlank() &&
+            prenom.isNotBlank() &&
+            ageAsInt in 1..100 &&
+            poids > 0 &&
+            taille > 0 &&
+            joursEntrainementDisponibles.isNotEmpty()
+}
 
 
 
@@ -643,3 +718,57 @@ fun DayCheckbox(
         )
     }
 }
+
+/**
+ * Un composant qui affiche une grille de checkboxes pour les jours de la semaine,
+ * le tout encadré dans une Card pour une meilleure présentation visuelle.
+ */
+@Composable
+fun DayCheckboxGrid(
+    joursSelectionnes: Set<JourSemaine>,
+    onDaySelectionChanged: (JourSemaine, Boolean) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp), // Coins arrondis pour la carte
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White) // Fond blanc pour la carte
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Jours d'entraînement préférés",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp, // Légèrement plus grand pour un titre de section
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            // La logique de boucle pour générer les checkboxes
+            val jours = JourSemaine.entries.chunked(3) // Divise les 7 jours en groupes de 3
+            jours.forEach { rowItems ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    // Utiliser Start au lieu de SpaceAround pour un meilleur alignement à gauche
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    rowItems.forEach { day ->
+                        // On utilise un weight pour que chaque colonne prenne la même largeur
+                        Box(modifier = Modifier.weight(1f)) {
+                            DayCheckbox(
+                                day = day,
+                                checked = joursSelectionnes.contains(day),
+                                onCheckedChange = { isChecked ->
+                                    onDaySelectionChanged(day, isChecked)
+                                }
+                            )
+                        }
+                    }
+                    // Ajoute des boîtes vides pour que la dernière ligne soit alignée
+                    if (rowItems.size < 3) {
+                        Spacer(modifier = Modifier.weight((3 - rowItems.size).toFloat()))
+                    }
+                }
+            }
+        }
+    }
+}
+

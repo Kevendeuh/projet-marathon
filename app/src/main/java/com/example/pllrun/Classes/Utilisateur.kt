@@ -66,11 +66,11 @@ data class Utilisateur(
 /**
  * Énumération pour le sexe de l'utilisateur.
  */
-enum class Sexe {
-    HOMME,
-    FEMME,
-    AUTRE,
-    NON_SPECIFIE
+enum class Sexe(val libelle: String) {
+    HOMME(libelle = "Homme"),
+    FEMME(libelle = "Femme"),
+    AUTRE(libelle = "Autre"),
+    NON_SPECIFIE(libelle = "Non spécifié")
 }
 
 /**

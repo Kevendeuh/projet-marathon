@@ -61,6 +61,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.firebase.crashlytics.buildtools)
     implementation(libs.androidx.navigation.runtime.ktx)
+    implementation(libs.androidx.core.i18n)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
