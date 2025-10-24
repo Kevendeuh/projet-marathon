@@ -23,6 +23,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,8 +36,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.pllrun.Classes.Utilisateur
 import com.example.pllrun.InventaireViewModel
 import com.example.pllrun.R
+import com.example.pllrun.calculator.calculHeureCouche
+import com.example.pllrun.calculator.calculTotalCalories
+import com.example.pllrun.calculator.calculTotalMinutesSleep
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import java.time.LocalTime
 
 
 @Composable
@@ -42,7 +54,29 @@ fun HubScreen(
     onPlanningSport: () -> Unit,
     onAddGoal: () -> Unit
 ) {
-    Column(
+    /**
+     * Variables.
+     */
+    var utilisateurPrincipal by remember { mutableStateOf<Utilisateur?>(null) }
+    var tempsSommeilSuggere by remember { mutableStateOf<Long?>(null) }
+    var heureCoucheSuggeree by remember { mutableStateOf<LocalTime?>(null) }
+    var totalCaloriesSuggeree by remember { mutableStateOf<Float?>(null) }
+
+
+    // Récupère le premier utilisateur de manière sûre.
+
+    LaunchedEffect(key1 = true) {
+        val user = viewModel.getAllUtilisateurs().firstOrNull()?.firstOrNull()
+        if (user != null) {
+            utilisateurPrincipal = user
+            tempsSommeilSuggere = calculTotalMinutesSleep(user, viewModel)
+            heureCoucheSuggeree = calculHeureCouche(user, viewModel)
+            totalCaloriesSuggeree = calculTotalCalories( user, viewModel)
+        }
+    }
+
+
+        Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF1F1F1)) // Fond gris clair
@@ -99,17 +133,25 @@ fun HubScreen(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Carte Sommeil
+            var descriptionSommeil= "estimation impossible veuillez renseigner utilisateur"
+            if (tempsSommeilSuggere != null) {
+            descriptionSommeil = " temps de sommeil suggéré:$tempsSommeilSuggere minutes \n heure de couche suggérée:$heureCoucheSuggeree"
+            }
             TaskCard(
                 title = "Sommeil",
-                content = "Suivi de votre sommeil",
+                content = descriptionSommeil,
                 onThreeDotsClick = { /* TODO: Naviguer vers écran sommeil */ },
                 modifier = Modifier.weight(1f)
             )
 
             // Carte À Manger
+            var descriptionCalories= "estimation impossible veuillez renseigner utilisateur"
+            if (totalCaloriesSuggeree != null) {
+                descriptionCalories = " Calories suggérées:$totalCaloriesSuggeree"
+            }
             TaskCard(
                 title = "À Manger",
-                content = "Recommandations alimentaires",
+                content = descriptionCalories,
                 onThreeDotsClick = { /* TODO: Naviguer vers écran nutrition */ },
                 modifier = Modifier.weight(1f)
             )

@@ -27,8 +27,19 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
     /**
      * Inserts the new Utilisateur into database.
      */
-    fun addNewUtilisateur(nom: String ="", prenom: String = "", dateDeNaissance: LocalDate? = null, sexe: Sexe = Sexe.NON_SPECIFIE, poids: Double = 0.0, taille: Int = 0, vma: Double? = 0.0, fcm: Int? = 0, fcr: Int? = 0, niveauExperience: NiveauExperience = NiveauExperience.DEBUTANT, joursEntrainementDisponibles: List<JourSemaine> = emptyList()) {
-        val newUtilisateur = getNewUtilisateurEntry( nom, prenom, dateDeNaissance, sexe, poids, taille, vma, fcm,fcr,niveauExperience,joursEntrainementDisponibles )
+    fun addNewUtilisateur(nom: String ="", prenom: String = "", dateDeNaissance: LocalDate? = null, sexe: Sexe = Sexe.NON_SPECIFIE, poids: Double = 0.0, poidsCible: Double=0.0, taille: Int = 0, vma: Double? = 0.0, fcm: Int? = 0, fcr: Int? = 0, niveauExperience: NiveauExperience = NiveauExperience.DEBUTANT, joursEntrainementDisponibles: List<JourSemaine> = emptyList()) {
+        val newUtilisateur = getNewUtilisateurEntry( nom = nom,
+            prenom =prenom,
+            dateDeNaissance = dateDeNaissance,
+            sexe = sexe,
+            poids = poids,
+            poidsCible = poidsCible,
+            taille = taille,
+            vma = vma,
+            fcm = fcm,
+            fcr = fcr,
+            niveauExperience = niveauExperience,
+            joursEntrainementDisponibles = joursEntrainementDisponibles )
         insertUtilisateur(newUtilisateur)
     }
 
@@ -175,6 +186,7 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
         dateDeNaissance: LocalDate?,
         sexe: Sexe,
         poids: Double,
+        poidsCible: Double,
         taille: Int,
         vma: Double?,
         fcm: Int?,

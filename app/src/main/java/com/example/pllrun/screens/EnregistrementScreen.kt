@@ -82,14 +82,16 @@ fun EnregistrementScreen(
     var prenom by remember { mutableStateOf("") }
     var poids by remember { mutableStateOf("") }
     var taille by remember { mutableStateOf("") }
+    var niveau by remember { mutableStateOf(NiveauExperience.DEBUTANT) }
+
     var dateDeNaissance by remember { mutableStateOf<LocalDate?>(LocalDate.now()) }
     // Nouveaux états pour les champs ajoutés
-    var sexe by remember { mutableStateOf("") }
-    var niveauExperience by remember { mutableStateOf("") }
     var poidsCible by remember { mutableStateOf("") }
     var vma by remember { mutableStateOf("") }
     var fcm by remember { mutableStateOf("") }
     var fcr by remember { mutableStateOf("") }
+
+    var sexe by remember { mutableStateOf(Sexe.NON_SPECIFIE) }
 
     // États pour les jours d'entraînement
     var joursSelectionnes by remember { mutableStateOf(setOf<JourSemaine>()) }
@@ -99,8 +101,6 @@ fun EnregistrementScreen(
     var niveauExpanded by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) } // État pour contrôler l'ouverture du dialogue
     // Options pour les menus déroulants
-    var sex by remember { mutableStateOf(Sexe.NON_SPECIFIE) }
-    var niveau by remember { mutableStateOf(NiveauExperience.DEBUTANT) }
     val isButtonEnabled = remember(nom, prenom, dateDeNaissance, joursSelectionnes, poidsCible) {
         isFormValid(nom=nom, prenom=prenom, dateDeNaissance= dateDeNaissance , poids = poids.toDoubleOrNull(), taille=taille.toIntOrNull(), joursEntrainementDisponibles = joursSelectionnes.toList() )
     }
@@ -109,16 +109,20 @@ fun EnregistrementScreen(
 
     // --- Fonction de Sauvegarde ---
     fun saveUser() {
+        if(poidsCible.isEmpty()){
+            poidsCible = poids
+        }
 
         viewModel?.addNewUtilisateur(
             nom = nom,
             prenom = prenom,
             dateDeNaissance = dateDeNaissance,
-            sexe = sex,
+            sexe = sexe,
             // On ne peut pas avoir poids et poidsCible, on utilise poidsCible comme poids initial pour l'exemple
-            poids = poidsCible.toDoubleOrNull() ?: 0.0,
+            poids = poids.toDouble(),
+            poidsCible = poidsCible.toDoubleOrNull() ?: poids.toDouble(),
             // La taille n'est pas dans le formulaire, on met une valeur par défaut
-            taille = 0,
+            taille = taille.toInt(),
             vma = vma.toDoubleOrNull(),
             fcm = fcm.toIntOrNull(),
             fcr = fcr.toIntOrNull(),
@@ -359,8 +363,8 @@ fun EnregistrementScreen(
                     onExpandedChange = { sexeExpanded = !sexeExpanded }
                 ) {
                     OutlinedTextField(
-                        value = sexe,
-                        onValueChange = {},
+                        value = sexe.libelle,
+                        onValueChange = {sexe = sexe},
                         readOnly = true,
                         modifier = Modifier
                             .menuAnchor()
@@ -384,9 +388,9 @@ fun EnregistrementScreen(
                     ) {
                         Sexe.entries.forEach { option ->
                             DropdownMenuItem(
-                                text = { Text(option.toString(), fontSize = 14.sp) },
+                                text = { Text(option.libelle, fontSize = 14.sp) },
                                 onClick = {
-                                    sexe = option.name
+                                    sexe = option
                                     sexeExpanded = false
                                 }
                             )
@@ -408,8 +412,8 @@ fun EnregistrementScreen(
                     onExpandedChange = { niveauExpanded = !niveauExpanded }
                 ) {
                     OutlinedTextField(
-                        value = niveauExperience,
-                        onValueChange = {},
+                        value = niveau.libelle,
+                        onValueChange = { },
                         readOnly = true,
                         modifier = Modifier
                             .menuAnchor()
@@ -435,7 +439,7 @@ fun EnregistrementScreen(
                             DropdownMenuItem(
                                 text = { Text(option.libelle, fontSize = 14.sp) },
                                 onClick = {
-                                    niveauExperience = option.name
+                                    niveau = option
                                     niveauExpanded = false
                                 }
                             )
@@ -682,6 +686,7 @@ private fun isFormValid(
     ){
         return false
     }
+
     val ageAsInt =  LocalDate.now().year - dateDeNaissance.year
     return  nom.isNotBlank() &&
             prenom.isNotBlank() &&
