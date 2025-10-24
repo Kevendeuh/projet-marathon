@@ -69,7 +69,8 @@ fun AppNavHost(
                 onSave = {
                     // Sauvegarder les infos et marquer l'utilisateur comme inscrit
                     isUserRegistered = true
-                }
+                },
+                viewModel = viewModel
             )
         }
         composable(route = AppScreen.Objectif.name) {

@@ -46,11 +46,23 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.pllrun.Classes.NiveauExperience
+import com.example.pllrun.Classes.Utilisateur
+import com.example.pllrun.Classes.JourSemaine
+
+
+import com.example.pllrun.Classes.TypeDecoupage
+import com.example.pllrun.Classes.Sexe
+import com.example.pllrun.InventaireViewModel
+
 import com.example.pllrun.R
+import java.time.LocalDate
+import kotlin.text.lowercase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnregistrementScreen(
+    viewModel: InventaireViewModel?,
     onNext: () -> Unit,
     onSave: () -> Unit
 ) {
@@ -70,6 +82,7 @@ fun EnregistrementScreen(
     var fcr by remember { mutableStateOf("") }
 
     // États pour les jours d'entraînement
+    var joursSelectionnes by remember { mutableStateOf(setOf<JourSemaine>()) }
     var lundi by remember { mutableStateOf(false) }
     var mardi by remember { mutableStateOf(false) }
     var mercredi by remember { mutableStateOf(false) }
@@ -83,8 +96,9 @@ fun EnregistrementScreen(
     var niveauExpanded by remember { mutableStateOf(false) }
 
     // Options pour les menus déroulants
-    val optionsSexe = listOf("Homme", "Femme", "Autre", "Non défini")
-    val optionsNiveau = listOf("Débutant", "Intermédiaire", "Avancé")
+    var sex by remember { mutableStateOf(Sexe.NON_SPECIFIE) }
+    var niveau by remember { mutableStateOf(NiveauExperience.DEBUTANT) }
+
 
     Column(
         modifier = Modifier
@@ -311,11 +325,11 @@ fun EnregistrementScreen(
                         expanded = sexeExpanded,
                         onDismissRequest = { sexeExpanded = false }
                     ) {
-                        optionsSexe.forEach { option ->
+                        Sexe.entries.forEach { option ->
                             DropdownMenuItem(
-                                text = { Text(option, fontSize = 14.sp) },
+                                text = { Text(option.toString(), fontSize = 14.sp) },
                                 onClick = {
-                                    sexe = option
+                                    sexe = option.name
                                     sexeExpanded = false
                                 }
                             )
@@ -360,11 +374,11 @@ fun EnregistrementScreen(
                         expanded = niveauExpanded,
                         onDismissRequest = { niveauExpanded = false }
                     ) {
-                        optionsNiveau.forEach { option ->
+                        NiveauExperience.entries.forEach { option ->
                             DropdownMenuItem(
-                                text = { Text(option, fontSize = 14.sp) },
+                                text = { Text(option.libelle, fontSize = 14.sp) },
                                 onClick = {
-                                    niveauExperience = option
+                                    niveauExperience = option.name
                                     niveauExpanded = false
                                 }
                             )
@@ -382,189 +396,232 @@ fun EnregistrementScreen(
                 modifier = Modifier.padding(vertical = 4.dp)
             )
 
-            // Checkboxes pour les jours de la semaine - disposition compacte
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    DayCheckbox(day = "Lundi", checked = lundi, onCheckedChange = { lundi = it })
-                    DayCheckbox(day = "Mardi", checked = mardi, onCheckedChange = { mardi = it })
-                    DayCheckbox(day = "Mercredi", checked = mercredi, onCheckedChange = { mercredi = it })
-                }
-                Column {
-                    DayCheckbox(day = "Jeudi", checked = jeudi, onCheckedChange = { jeudi = it })
-                    DayCheckbox(day = "Vendredi", checked = vendredi, onCheckedChange = { vendredi = it })
-                }
-                Column {
-                    DayCheckbox(day = "Samedi", checked = samedi, onCheckedChange = { samedi = it })
-                    DayCheckbox(day = "Dimanche", checked = dimanche, onCheckedChange = { dimanche = it })
+            // --- Section Jours d'entraînement ---
+            Text(
+                "Jours d'entraînement préférés",
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+
+            // Boucle pour générer les DayCheckbox
+            val jours = JourSemaine.entries.chunked(3) // Divise les 7 jours en groupes de 3
+            Column {
+                jours.forEach { rowItems ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround
+                    ) {
+                        rowItems.forEach { day ->
+                            DayCheckbox(
+                                day = day,
+                                checked = joursSelectionnes.contains(day),
+                                onCheckedChange = { isChecked ->
+                                    joursSelectionnes = if (isChecked) {
+                                        joursSelectionnes + day
+                                    } else {
+                                        joursSelectionnes - day
+                                    }
+                                }
+                            )
+                        }
+                        // Pour aligner les colonnes si la dernière ligne n'a pas 3 jours
+                        if (rowItems.size < 3) {
+                            Spacer(modifier = Modifier.weight((3 - rowItems.size).toFloat()))
+                        }
+                    }
                 }
             }
 
-            // Section Informations optionnelles
-            Text(
-                text = "Informations optionnelles",
-                fontSize = 14.sp, // Réduit
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
+                // Section Informations optionnelles
+                Text(
+                    text = "Informations optionnelles",
+                    fontSize = 14.sp, // Réduit
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
 
-            // Champ Poids cible
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Poids cible",
-                        fontSize = 12.sp, // Réduit
-                        color = Color.Gray,
-                        modifier = Modifier.padding(bottom = 2.dp)
-                    )
-                    Text(
-                        text = " (optionnel)",
-                        fontSize = 10.sp, // Réduit
-                        color = Color.Gray,
-                        modifier = Modifier.padding(bottom = 2.dp)
-                    )
-                }
-                OutlinedTextField(
-                    value = poidsCible,
-                    onValueChange = { poidsCible = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(6.dp),
-                    textStyle = TextStyle(fontSize = 14.sp), // Réduit
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    trailingIcon = {
+                // Champ Poids cible
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Kg",
+                            text = "Poids cible",
                             fontSize = 12.sp, // Réduit
                             color = Color.Gray,
-                            modifier = Modifier.padding(end = 8.dp)
+                            modifier = Modifier.padding(bottom = 2.dp)
+                        )
+                        Text(
+                            text = " (optionnel)",
+                            fontSize = 10.sp, // Réduit
+                            color = Color.Gray,
+                            modifier = Modifier.padding(bottom = 2.dp)
                         )
                     }
+                    OutlinedTextField(
+                        value = poidsCible,
+                        onValueChange = { poidsCible = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(6.dp),
+                        textStyle = TextStyle(fontSize = 14.sp), // Réduit
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        trailingIcon = {
+                            Text(
+                                text = "Kg",
+                                fontSize = 12.sp, // Réduit
+                                color = Color.Gray,
+                                modifier = Modifier.padding(end = 8.dp)
+                            )
+                        }
+                    )
+                }
+
+                // Ligne VMA, FCM, FCR
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp) // Espacement réduit
+                ) {
+                    // VMA
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "VMA",
+                                fontSize = 12.sp, // Réduit
+                                color = Color.Gray,
+                                modifier = Modifier.padding(bottom = 2.dp)
+                            )
+                            Text(
+                                text = " (opt)",
+                                fontSize = 10.sp, // Réduit
+                                color = Color.Gray,
+                                modifier = Modifier.padding(bottom = 2.dp)
+                            )
+                        }
+                        OutlinedTextField(
+                            value = vma,
+                            onValueChange = { vma = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(6.dp),
+                            textStyle = TextStyle(fontSize = 14.sp), // Réduit
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                    }
+
+                    // FCM
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "FCM",
+                                fontSize = 12.sp, // Réduit
+                                color = Color.Gray,
+                                modifier = Modifier.padding(bottom = 2.dp)
+                            )
+                            Text(
+                                text = " (opt)",
+                                fontSize = 10.sp, // Réduit
+                                color = Color.Gray,
+                                modifier = Modifier.padding(bottom = 2.dp)
+                            )
+                        }
+                        OutlinedTextField(
+                            value = fcm,
+                            onValueChange = { fcm = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(6.dp),
+                            textStyle = TextStyle(fontSize = 14.sp), // Réduit
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                    }
+
+                    // FCR
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "FCR",
+                                fontSize = 12.sp, // Réduit
+                                color = Color.Gray,
+                                modifier = Modifier.padding(bottom = 2.dp)
+                            )
+                            Text(
+                                text = " (opt)",
+                                fontSize = 10.sp, // Réduit
+                                color = Color.Gray,
+                                modifier = Modifier.padding(bottom = 2.dp)
+                            )
+                        }
+                        OutlinedTextField(
+                            value = fcr,
+                            onValueChange = { fcr = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(6.dp),
+                            textStyle = TextStyle(fontSize = 14.sp), // Réduit
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                    }
+                }
+
+                // Espace supplémentaire en bas pour le scroll
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Bouton Suivant
+            Button(
+                onClick = {
+                    onSave()
+                    onNext()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp), // Légèrement réduit
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFF751F)
+                )
+            ) {
+                Text(
+                    text = "Suivant",
+                    fontSize = 16.sp, // Réduit
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
                 )
             }
-
-            // Ligne VMA, FCM, FCR
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp) // Espacement réduit
-            ) {
-                // VMA
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "VMA",
-                            fontSize = 12.sp, // Réduit
-                            color = Color.Gray,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-                        Text(
-                            text = " (opt)",
-                            fontSize = 10.sp, // Réduit
-                            color = Color.Gray,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-                    }
-                    OutlinedTextField(
-                        value = vma,
-                        onValueChange = { vma = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(6.dp),
-                        textStyle = TextStyle(fontSize = 14.sp), // Réduit
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-                }
-
-                // FCM
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "FCM",
-                            fontSize = 12.sp, // Réduit
-                            color = Color.Gray,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-                        Text(
-                            text = " (opt)",
-                            fontSize = 10.sp, // Réduit
-                            color = Color.Gray,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-                    }
-                    OutlinedTextField(
-                        value = fcm,
-                        onValueChange = { fcm = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(6.dp),
-                        textStyle = TextStyle(fontSize = 14.sp), // Réduit
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-                }
-
-                // FCR
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "FCR",
-                            fontSize = 12.sp, // Réduit
-                            color = Color.Gray,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-                        Text(
-                            text = " (opt)",
-                            fontSize = 10.sp, // Réduit
-                            color = Color.Gray,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-                    }
-                    OutlinedTextField(
-                        value = fcr,
-                        onValueChange = { fcr = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(6.dp),
-                        textStyle = TextStyle(fontSize = 14.sp), // Réduit
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-                }
-            }
-
-            // Espace supplémentaire en bas pour le scroll
-            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Bouton Suivant
-        Button(
-            onClick = {
-                onSave()
-                onNext()
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp), // Légèrement réduit
-            shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFF751F)
-            )
-        ) {
-            Text(
-                text = "Suivant",
-                fontSize = 16.sp, // Réduit
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+    // --- Fonction de Sauvegarde ---
+    fun saveUser() {
+        // Calcul d'une date de naissance approximative à partir de l'âge
+        val calculatedBirthDate = age.toIntOrNull()?.let {
+            LocalDate.now().minusYears(it.toLong())
         }
+
+        viewModel?.addNewUtilisateur(
+            nom = nom,
+            prenom = prenom,
+            dateDeNaissance = calculatedBirthDate,
+            sexe = sex,
+            // On ne peut pas avoir poids et poidsCible, on utilise poidsCible comme poids initial pour l'exemple
+            poids = poidsCible.toDoubleOrNull() ?: 0.0,
+            // La taille n'est pas dans le formulaire, on met une valeur par défaut
+            taille = 0,
+            vma = vma.toDoubleOrNull(),
+            fcm = fcm.toIntOrNull(),
+            fcr = fcr.toIntOrNull(),
+            niveauExperience = niveau,
+            joursEntrainementDisponibles = joursSelectionnes.toList() // On convertit le Set en List
+        )
     }
-}
+    }
+
+
+
 
 // Composant réutilisable pour les checkboxes des jours
 @Composable
 fun DayCheckbox(
-    day: String,
+    day: JourSemaine,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
@@ -579,7 +636,7 @@ fun DayCheckbox(
             modifier = Modifier.size(20.dp) // Taille réduite
         )
         Text(
-            text = day,
+            text = day.name.lowercase().replaceFirstChar { it.titlecase() },
             fontSize = 12.sp, // Réduit
             color = Color.Black,
             modifier = Modifier.padding(start = 2.dp) // Espacement réduit
