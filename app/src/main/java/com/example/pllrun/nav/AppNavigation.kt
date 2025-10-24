@@ -83,7 +83,8 @@ fun AppNavHost(
                     navController.navigate(AppScreen.Hub.name) {
                         popUpTo(AppScreen.Accueil.name) { inclusive = true }
                     }
-                }
+                },
+                viewModel = viewModel
             )
         }
         composable(route = AppScreen.Hub.name) {
