@@ -36,7 +36,7 @@ suspend fun calculTotalCalories(utilisateur: Utilisateur,
         coefficient=2.5F
     }
 
-    totalCalores = RMR * coefficient
+    totalCalores = RMR * coefficient * (utilisateur.poids/utilisateur.poidsCible).toFloat()
 
 
     return totalCalores
