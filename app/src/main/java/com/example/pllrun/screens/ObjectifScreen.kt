@@ -35,12 +35,25 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.pllrun.Classes.Activite
+import com.example.pllrun.Classes.NiveauExperience
+import com.example.pllrun.Classes.Objectif
+import com.example.pllrun.Classes.TypeDecoupage
+import com.example.pllrun.Classes.TypeObjectif
+import com.example.pllrun.Classes.Utilisateur
+import com.example.pllrun.InventaireViewModel
+import com.example.pllrun.ui.theme.PllRunTheme
+import java.time.Duration
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ObjectifScreen(
+    viewModel: InventaireViewModel?,
     onSaveAndNext: () -> Unit,
     onSkip: () -> Unit
 ) {
@@ -48,20 +61,19 @@ fun ObjectifScreen(
     var nomObjectif by remember { mutableStateOf("") }
     var dateDebut by remember { mutableStateOf("") }
     var dateFin by remember { mutableStateOf("") }
-    var niveau by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf("") }
+    var niveau by remember { mutableStateOf(NiveauExperience.DEBUTANT) }
+    var type by remember { mutableStateOf(TypeObjectif.MARATHON) }
+    var decoupage by remember { mutableStateOf(TypeDecoupage.UNIQUE) }
+
     var typeDecoupage by remember { mutableStateOf("") }
     var descriptionObjectif by remember { mutableStateOf("") }
 
-    // États pour les menus déroulants
-    var niveauExpanded by remember { mutableStateOf(false) }
-    var typeExpanded by remember { mutableStateOf(false) }
-    var decoupageExpanded by remember { mutableStateOf(false) }
-
     // Options pour les menus déroulants
-    val niveaux = listOf("Débutant", "Intermédiaire", "Avancé")
-    val types = listOf("Marathon", "Course")
-    val decoupages = listOf("Unique", "Temporiser")
+    var showDatePickerDebut by remember { mutableStateOf(false) }
+    var showDatePickerFin by remember { mutableStateOf(false) }
+    var showNiveauDropdown by remember { mutableStateOf(false) }
+    var showTypeDropdown by remember { mutableStateOf(false) }
+    var showDecoupageDropdown by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -171,154 +183,101 @@ fun ObjectifScreen(
             }
 
             // Ligne Niveau et Type
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Menu déroulant Niveau
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Niveau",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                    ExposedDropdownMenuBox(
-                        expanded = niveauExpanded,
-                        onExpandedChange = { niveauExpanded = !niveauExpanded }
-                    ) {
-                        OutlinedTextField(
-                            value = niveau,
-                            onValueChange = {},
-                            readOnly = true,
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            textStyle = TextStyle(fontSize = 16.sp),
-                            placeholder = {
-                                Text(
-                                    "Sélectionner",
-                                    color = Color.Gray,
-                                    fontSize = 14.sp
-                                )
-                            },
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = niveauExpanded)
-                            }
-                        )
-                        ExposedDropdownMenu(
-                            expanded = niveauExpanded,
-                            onDismissRequest = { niveauExpanded = false }
-                        ) {
-                            niveaux.forEach { option ->
-                                DropdownMenuItem(
-                                    text = { Text(option) },
-                                    onClick = {
-                                        niveau = option
-                                        niveauExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
 
-                // Menu déroulant Type
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Type",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                    ExposedDropdownMenuBox(
-                        expanded = typeExpanded,
-                        onExpandedChange = { typeExpanded = !typeExpanded }
-                    ) {
-                        OutlinedTextField(
-                            value = type,
-                            onValueChange = {},
-                            readOnly = true,
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            textStyle = TextStyle(fontSize = 16.sp),
-                            placeholder = {
-                                Text(
-                                    "Sélectionner",
-                                    color = Color.Gray,
-                                    fontSize = 14.sp
-                                )
-                            },
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded)
+
+            // --- GESTION DE L'ENUM 'TYPEOBJECTIF' ---
+            ExposedDropdownMenuBox(
+                expanded = showTypeDropdown,
+                onExpandedChange = { showTypeDropdown = !showTypeDropdown }
+            ) {
+                OutlinedTextField(
+                    value = type.libelle,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Type d'objectif") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showTypeDropdown) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = showTypeDropdown,
+                    onDismissRequest = { showTypeDropdown = false }
+                ) {
+                    TypeObjectif.entries.forEach { selectionOption ->
+                        DropdownMenuItem(
+                            text = { Text(selectionOption.libelle) },
+                            onClick = {
+                                type = selectionOption
+                                showTypeDropdown = false
+
+                                descriptionObjectif = selectionOption.description
+
                             }
                         )
-                        ExposedDropdownMenu(
-                            expanded = typeExpanded,
-                            onDismissRequest = { typeExpanded = false }
-                        ) {
-                            types.forEach { option ->
-                                DropdownMenuItem(
-                                    text = { Text(option) },
-                                    onClick = {
-                                        type = option
-                                        typeExpanded = false
-                                    }
-                                )
-                            }
-                        }
                     }
                 }
             }
 
-            // Menu déroulant Type de découpage
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Type de découpage",
-                    fontSize = 14.sp,
-                    color = Color.Gray,
-                    modifier = Modifier.padding(bottom = 4.dp)
+            // --- GESTION DE L'ENUM 'NIVEAUEXPERIENCE' ---
+            ExposedDropdownMenuBox(
+                expanded = showNiveauDropdown,
+                onExpandedChange = { showNiveauDropdown = !showNiveauDropdown }
+            ) {
+                OutlinedTextField(
+                    value = niveau.libelle,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Niveau") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showNiveauDropdown) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
                 )
-                ExposedDropdownMenuBox(
-                    expanded = decoupageExpanded,
-                    onExpandedChange = { decoupageExpanded = !decoupageExpanded }
+                ExposedDropdownMenu(
+                    expanded = showNiveauDropdown,
+                    onDismissRequest = { showNiveauDropdown = false }
                 ) {
-                    OutlinedTextField(
-                        value = typeDecoupage,
-                        onValueChange = {},
-                        readOnly = true,
-                        modifier = Modifier
-                            .menuAnchor()
-                            .fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        textStyle = TextStyle(fontSize = 16.sp),
-                        placeholder = {
-                            Text(
-                                "Sélectionner",
-                                color = Color.Gray,
-                                fontSize = 14.sp
-                            )
-                        },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = decoupageExpanded)
-                        }
-                    )
-                    ExposedDropdownMenu(
-                        expanded = decoupageExpanded,
-                        onDismissRequest = { decoupageExpanded = false }
-                    ) {
-                        decoupages.forEach { option ->
-                            DropdownMenuItem(
-                                text = { Text(option) },
-                                onClick = {
-                                    typeDecoupage = option
-                                    decoupageExpanded = false
-                                }
-                            )
-                        }
+                    NiveauExperience.entries.forEach { selectionOption ->
+                        DropdownMenuItem(
+                            text = { Text(selectionOption.libelle) },
+                            onClick = {
+                                niveau = selectionOption
+                                showNiveauDropdown = false
+                            }
+                        )
+                    }
+                }
+            }
+
+
+            // --- GESTION DE L'ENUM 'TYPE DECOUPAGE' ---
+            ExposedDropdownMenuBox(
+                expanded = showDecoupageDropdown,
+                onExpandedChange = { showDecoupageDropdown = !showDecoupageDropdown }
+            ) {
+                OutlinedTextField(
+                    value = decoupage.libelle,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Découpage") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDecoupageDropdown) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = showDecoupageDropdown,
+                    onDismissRequest = { showDecoupageDropdown = false }
+                ) {
+                    TypeDecoupage.entries.forEach { selectionOption ->
+                        DropdownMenuItem(
+                            text = { Text(selectionOption.libelle) },
+                            onClick = {
+                                decoupage = selectionOption
+                                showDecoupageDropdown = false
+                            }
+                        )
                     }
                 }
             }
@@ -366,7 +325,23 @@ fun ObjectifScreen(
         // Bouton Enregistrer
         Button(
             onClick = {
-                // TODO: Sauvegarder l'objectif dans la base de données
+                if(viewModel != null){
+                    val nouvelObjectif = Objectif(
+                        nom = nomObjectif,
+                        dateDeDebut = LocalDate.now(),
+                        dateDeFin = LocalDate.now(),
+                        niveau = niveau,
+                        type = type,
+                        typeDecoupage = decoupage,
+                        tauxDeProgression = 0.0,
+                        description = descriptionObjectif,
+                        utilisateurId = 0,
+                        estValide = false
+                    )
+                    //viewModel.addNewObjectif(objectif = nouvelObjectif)
+
+                }
+
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -418,5 +393,13 @@ fun ObjectifScreen(
                 color = Color.Gray
             )
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ObjectifScreenPreview() {
+    PllRunTheme {
+        ObjectifScreen( null,{ }, { })
     }
 }

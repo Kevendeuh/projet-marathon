@@ -46,8 +46,6 @@ data class Objectif(
     var type: TypeObjectif,
     @ColumnInfo(index = true) // Indexing foreign keys is good for performance
     var utilisateurId: Long,
-    @ColumnInfo(name = "est_complete")
-    var estComplete: Boolean = false,
     @ColumnInfo(name = "type_decoupage")
     var typeDecoupage: TypeDecoupage= TypeDecoupage.UNIQUE,
     @ColumnInfo(name = "description")
@@ -61,16 +59,21 @@ data class Objectif(
      */
 }
 
-enum class TypeObjectif {
-    COURSE,MARATHON,ETIREMENT,CARDIO,AUTRE
+enum class TypeObjectif( val libelle:String,var description:String) {
+    COURSE( "Course"," courir pendant 10km en 1h30"),
+    MARATHON("Marathon","courir pendant 42km en 6h"),
+    ETIREMENT( "Etirements","reussir un grand écart yolo"),
+    CARDIO("Cardio","corde a sauter hehe pendant 5 min"),
+    AUTRE( "Autre","rien de spécial")
 }
 
 enum class  TypeIntensite {
     LONG,MOYEN,COURT
 }
 
-enum class TypeDecoupage {
-    TEMPORISE,UNIQUE
+enum class TypeDecoupage(val libelle: String) {
+    TEMPORISE( "Temporisé"),
+    UNIQUE( "Unique")
 }
 
 
