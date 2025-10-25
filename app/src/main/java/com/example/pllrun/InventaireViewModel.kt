@@ -201,6 +201,7 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
             dateDeNaissance = dateDeNaissance,
             sexe = sexe,
             poids = poids,
+            poidsCible = poidsCible,
             taille = taille,
             vma = vma,
             fcm = fcm,

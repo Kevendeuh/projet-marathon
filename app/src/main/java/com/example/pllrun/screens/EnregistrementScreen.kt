@@ -40,6 +40,7 @@ import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,6 +68,11 @@ import com.example.pllrun.Classes.Sexe
 import com.example.pllrun.InventaireViewModel
 
 import com.example.pllrun.R
+import com.example.pllrun.calculator.calculHeureCouche
+import com.example.pllrun.calculator.calculTotalCalories
+import com.example.pllrun.calculator.calculTotalMinutesSleep
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import java.time.LocalDate
 import kotlin.text.lowercase
 
@@ -75,7 +81,6 @@ import kotlin.text.lowercase
 fun EnregistrementScreen(
     viewModel: InventaireViewModel?,
     onNext: () -> Unit,
-    onSave: () -> Unit
 ) {
     // États pour les champs de formulaire existants
     var nom by remember { mutableStateOf("") }
@@ -83,8 +88,8 @@ fun EnregistrementScreen(
     var poids by remember { mutableStateOf("") }
     var taille by remember { mutableStateOf("") }
     var niveau by remember { mutableStateOf(NiveauExperience.DEBUTANT) }
-
     var dateDeNaissance by remember { mutableStateOf<LocalDate?>(LocalDate.now()) }
+
     // Nouveaux états pour les champs ajoutés
     var poidsCible by remember { mutableStateOf("") }
     var vma by remember { mutableStateOf("") }
@@ -92,6 +97,9 @@ fun EnregistrementScreen(
     var fcr by remember { mutableStateOf("") }
 
     var sexe by remember { mutableStateOf(Sexe.NON_SPECIFIE) }
+
+    //variable pour le bouton de suppression utilisateur
+    //var utilisateurPrincipal by remember { mutableStateOf<Utilisateur>(Utilisateur()) }
 
     // États pour les jours d'entraînement
     var joursSelectionnes by remember { mutableStateOf(setOf<JourSemaine>()) }
@@ -109,6 +117,8 @@ fun EnregistrementScreen(
 
     // --- Fonction de Sauvegarde ---
     fun saveUser() {
+
+        //met le poids cible au poids normal si non rempli
         if(poidsCible.isEmpty()){
             poidsCible = poids
         }
@@ -118,10 +128,8 @@ fun EnregistrementScreen(
             prenom = prenom,
             dateDeNaissance = dateDeNaissance,
             sexe = sexe,
-            // On ne peut pas avoir poids et poidsCible, on utilise poidsCible comme poids initial pour l'exemple
             poids = poids.toDouble(),
-            poidsCible = poidsCible.toDoubleOrNull() ?: poids.toDouble(),
-            // La taille n'est pas dans le formulaire, on met une valeur par défaut
+            poidsCible = poidsCible.toDouble(),
             taille = taille.toInt(),
             vma = vma.toDoubleOrNull(),
             fcm = fcm.toIntOrNull(),
@@ -130,6 +138,20 @@ fun EnregistrementScreen(
             joursEntrainementDisponibles = joursSelectionnes.toList() // On convertit le Set en List
         )
     }
+
+    //fonction de suppression d'utilisateur
+    /**
+    LaunchedEffect(key1 = true) {
+        val user = viewModel?.getAllUtilisateurs()?.firstOrNull()?.firstOrNull()
+        if (user != null) {
+            utilisateurPrincipal = user
+
+        }
+    }
+    fun suppUser(){
+        viewModel?.deleteUtilisateur(utilisateurPrincipal)
+    }
+    **/
 
     Column(
         modifier = Modifier
@@ -624,6 +646,22 @@ fun EnregistrementScreen(
         ) {
             Text("Suivant", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
+
+        // Bouton suppression utilisateur
+        /**
+        Button(
+            onClick = {
+                suppUser()
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF751F), disabledContainerColor = Color.LightGray)
+        ) {
+            Text("supp", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        }
+        **/
     }
 
 

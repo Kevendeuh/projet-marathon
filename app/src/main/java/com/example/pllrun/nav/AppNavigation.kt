@@ -59,10 +59,6 @@ fun AppNavHost(
                 onNext = {
                     navController.navigate(AppScreen.Objectif.name)
                 },
-                onSave = {
-                    // Sauvegarder les infos et marquer l'utilisateur comme inscrit
-                    isUserRegistered = true
-                },
                 viewModel = viewModel
             )
         }
