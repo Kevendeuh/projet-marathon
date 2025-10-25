@@ -74,7 +74,8 @@ fun AppNavHost(
                         popUpTo(AppScreen.Accueil.name) { inclusive = true }
                     }
                 },
-                viewModel = viewModel
+                viewModel = viewModel,
+                utilisateurId = 1
             )
         }
         composable(route = AppScreen.Hub.name) {
@@ -88,12 +89,14 @@ fun AppNavHost(
                 onAddGoal = {
                     navController.navigate(AppScreen.Objectif.name)
                 },
-                viewModel = viewModel
+                viewModel = viewModel,
+
             )
         }
         composable(route = AppScreen.PlanningSport.name) {
             PlanningSportScreen()
         }
+
     }
 }
 

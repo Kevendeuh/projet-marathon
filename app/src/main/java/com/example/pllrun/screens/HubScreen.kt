@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -24,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +46,9 @@ import com.example.pllrun.R
 import com.example.pllrun.calculator.calculHeureCouche
 import com.example.pllrun.calculator.calculTotalCalories
 import com.example.pllrun.calculator.calculTotalMinutesSleep
+import com.example.pllrun.components.ObjectifCard
+import com.example.pllrun.components.ObjectifEditDialog
+import com.example.pllrun.components.ObjectifsListContent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import java.time.LocalTime
@@ -52,7 +59,7 @@ fun HubScreen(
     viewModel: InventaireViewModel,
     onEditProfile: () -> Unit,
     onPlanningSport: () -> Unit,
-    onAddGoal: () -> Unit
+    onAddGoal: () -> Unit,
 ) {
     /**
      * Variables.
@@ -61,6 +68,10 @@ fun HubScreen(
     var tempsSommeilSuggere by remember { mutableStateOf<Long?>(null) }
     var heureCoucheSuggeree by remember { mutableStateOf<LocalTime?>(null) }
     var totalCaloriesSuggeree by remember { mutableStateOf<Float?>(null) }
+
+    //variable pour details objectif
+    var showEditDialog by remember { mutableStateOf(false) }
+    var selectedObjectifId by remember { mutableStateOf<Long?>(null) }
 
 
     // Récupère le premier utilisateur de manière sûre.
@@ -109,12 +120,38 @@ fun HubScreen(
         // Carte "A Faire"
         TaskCard(
             title = "A Faire",
-            content = "Vos tâches à compléter apparaîtront ici",
             onThreeDotsClick = onPlanningSport,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 24.dp)
-        )
+        ){
+            // On injecte directement notre liste d'objectifs ici
+            utilisateurPrincipal?.let { user ->
+                ObjectifsListContent(
+                    viewModel = viewModel,
+                    utilisateurId = user.id,
+                    onObjectifClick = { objectifId -> selectedObjectifId = objectifId
+                        showEditDialog = true},
+
+                )
+            }
+            // ---- AFFICHAGE CONDITIONNEL DU DIALOGUE ----
+            // Si un objectif est sélectionné, on affiche le dialogue d'édition
+            selectedObjectifId?.let { id ->
+                if (showEditDialog) {
+                    ObjectifEditDialog(
+                        viewModel = viewModel,
+                        objectifId = id,
+                        onDismiss = {
+                            showEditDialog = false
+                            selectedObjectifId = null // On réinitialise l'ID à la fermeture
+                        }
+                    )
+                }
+            }
+
+
+        }
 
         // Section "Défis À Suivre"
         Text(
@@ -139,10 +176,16 @@ fun HubScreen(
             }
             TaskCard(
                 title = "Sommeil",
-                content = descriptionSommeil,
                 onThreeDotsClick = { /* TODO: Naviguer vers écran sommeil */ },
                 modifier = Modifier.weight(1f)
             )
+            {
+                Text(
+                    text = descriptionSommeil,
+                    fontSize = 14.sp,
+                    color = Color.Gray,
+                )
+            }
 
             // Carte À Manger
             var descriptionCalories= "estimation impossible veuillez renseigner utilisateur"
@@ -151,10 +194,15 @@ fun HubScreen(
             }
             TaskCard(
                 title = "À Manger",
-                content = descriptionCalories,
                 onThreeDotsClick = { /* TODO: Naviguer vers écran nutrition */ },
                 modifier = Modifier.weight(1f)
-            )
+            ){
+                Text(
+                    text = descriptionCalories,
+                    fontSize = 14.sp,
+                    color = Color.Gray,
+                )
+            }
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -184,9 +232,9 @@ fun HubScreen(
 @Composable
 fun TaskCard(
     title: String,
-    content: String,
     onThreeDotsClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
         modifier = modifier,
@@ -210,13 +258,8 @@ fun TaskCard(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            // Contenu de la carte
-            Text(
-                text = content,
-                fontSize = 14.sp,
-                color = Color.Gray,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+            content()
+            Spacer(modifier = Modifier.height(16.dp)) // Ajout d'un espace avant les points
 
             // Ligne des trois points en bas
             Row(
@@ -242,3 +285,4 @@ fun TaskCard(
         }
     }
 }
+

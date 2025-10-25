@@ -175,6 +175,9 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
         return objectifDao.getObjectifsForUtilisateur(utilisateurId)
     }
 
+    fun getObjectifById(objectifId: Long): Flow<Objectif> {
+        return objectifDao.getObjectifById(objectifId)
+    }
     /**
      * Returns an instance of the [Item] entity class with the item info entered by the user.
      * This will be used to add a new entry to the Inventory database.

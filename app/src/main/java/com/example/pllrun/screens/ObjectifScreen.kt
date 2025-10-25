@@ -1,6 +1,8 @@
 package com.example.pllrun.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,13 +18,18 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults.dateFormatter
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,26 +53,30 @@ import com.example.pllrun.Classes.TypeDecoupage
 import com.example.pllrun.Classes.TypeObjectif
 import com.example.pllrun.Classes.Utilisateur
 import com.example.pllrun.InventaireViewModel
+import com.example.pllrun.components.DatePickerComponent
 import com.example.pllrun.ui.theme.PllRunTheme
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ObjectifScreen(
     viewModel: InventaireViewModel?,
     onSaveAndNext: () -> Unit,
-    onSkip: () -> Unit
+    onSkip: () -> Unit,
+    utilisateurId: Long
 ) {
     // États pour les champs de formulaire
     var nomObjectif by remember { mutableStateOf("") }
-    var dateDebut by remember { mutableStateOf("") }
-    var dateFin by remember { mutableStateOf("") }
+    var dateDebut by remember { mutableStateOf<LocalDate>(LocalDate.now()) }
+    var dateFin by remember { mutableStateOf<LocalDate>(LocalDate.now()) }
     var niveau by remember { mutableStateOf(NiveauExperience.DEBUTANT) }
     var type by remember { mutableStateOf(TypeObjectif.MARATHON) }
     var decoupage by remember { mutableStateOf(TypeDecoupage.UNIQUE) }
 
-    var typeDecoupage by remember { mutableStateOf("") }
     var descriptionObjectif by remember { mutableStateOf("") }
 
     // Options pour les menus déroulants
@@ -74,6 +85,37 @@ fun ObjectifScreen(
     var showNiveauDropdown by remember { mutableStateOf(false) }
     var showTypeDropdown by remember { mutableStateOf(false) }
     var showDecoupageDropdown by remember { mutableStateOf(false) }
+
+    val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+
+    // --- AFFICHAGE CONDITIONNEL DES DIALOGUES DE DATE ---
+    // Cette logique s'activera dès que le booléen correspondant passera à true
+
+    if (showDatePickerDebut) {
+        DatePickerComponent(
+            initialDate = dateDebut,
+            onDateSelected = { newDate ->
+                dateDebut = newDate
+                if (newDate.isAfter(dateFin)) {
+                    dateFin = newDate.plusDays(1)
+                }
+            },
+            onDismiss = { showDatePickerDebut = false } // Cache le dialogue
+        )
+    }
+
+    if (showDatePickerFin) {
+        DatePickerComponent(
+            initialDate = dateFin,
+            onDateSelected = { newDate ->
+                // On s'assure que la date de fin n'est pas avant la date de début
+                if (!newDate.isBefore(dateDebut)) {
+                    dateFin = newDate
+                }
+            },
+            onDismiss = { showDatePickerFin = false } // Cache le dialogue
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -131,54 +173,85 @@ fun ObjectifScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Champ Date début
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Date début",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                    OutlinedTextField(
-                        value = dateDebut,
-                        onValueChange = { dateDebut = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        textStyle = TextStyle(fontSize = 16.sp),
-                        singleLine = true,
-                        placeholder = {
-                            Text(
-                                "JJ/MM/AAAA",
-                                color = Color.Gray,
-                                fontSize = 14.sp
+                    // Champ Date début
+                    Column(modifier = Modifier.weight(1f)
+                        .clickable( onClick = { showDatePickerDebut = true })) {
+                        Text(
+                            text = "Date début",
+                            fontSize = 14.sp,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                        Box {
+
+                            OutlinedTextField(
+                                // On affiche la date formatée
+                                value = dateDebut.format(dateFormatter),
+                                onValueChange = {}, // Le champ n'est pas éditable au clavier
+                                readOnly = true,    // On le met en lecture seule
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        showDatePickerDebut = true
+                                    }, // AU CLIC : on active le dialogue !
+                                shape = RoundedCornerShape(8.dp),
+                                textStyle = TextStyle(fontSize = 16.sp),
+                                singleLine = true
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize() // Prend exactement la même taille que le OutlinedTextField
+                                    .clickable(
+                                        onClick = { showDatePickerDebut = true },
+                                        // Enlève l'ondulation visuelle du clic si vous le souhaitez
+                                        indication = null,
+                                        interactionSource = remember { MutableInteractionSource() }
+                                    )
                             )
                         }
-                    )
-                }
+
+
+                    }
+
 
                 // Champ Date fin
-                Column(modifier = Modifier.weight(1f)) {
+
+                Column(modifier = Modifier.weight(1f)
+                    .clickable { showDatePickerFin = true },) {
                     Text(
-                        text = "Date fin",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                    OutlinedTextField(
-                        value = dateFin,
-                        onValueChange = { dateFin = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        textStyle = TextStyle(fontSize = 16.sp),
-                        singleLine = true,
-                        placeholder = {
-                            Text(
-                                "JJ/MM/AAAA",
-                                color = Color.Gray,
-                                fontSize = 14.sp
-                            )
-                        }
-                    )
+                            text = "Date fin",
+                            fontSize = 14.sp,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                    Box {
+                        OutlinedTextField(
+                            // On affiche la date formatée
+                            value = dateFin.format(dateFormatter),
+                            onValueChange = {}, // Le champ n'est pas éditable au clavier
+                            readOnly = true,    // On le met en lecture seule
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    showDatePickerFin = true
+                                }, // AU CLIC : on active le dialogue !
+                            shape = RoundedCornerShape(8.dp),
+                            textStyle = TextStyle(fontSize = 16.sp),
+                            singleLine = true
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize() // Prend exactement la même taille que le OutlinedTextField
+                                .clickable(
+                                    onClick = { showDatePickerFin = true },
+                                    // Enlève l'ondulation visuelle du clic si vous le souhaitez
+                                    indication = null,
+                                    interactionSource = remember { MutableInteractionSource() }
+                                )
+                        )
+                    }
                 }
             }
 
@@ -335,10 +408,10 @@ fun ObjectifScreen(
                         typeDecoupage = decoupage,
                         tauxDeProgression = 0.0,
                         description = descriptionObjectif,
-                        utilisateurId = 0,
+                        utilisateurId = utilisateurId,
                         estValide = false
                     )
-                    //viewModel.addNewObjectif(objectif = nouvelObjectif)
+                    viewModel.addNewObjectif(objectif = nouvelObjectif)
 
                 }
 
@@ -394,12 +467,14 @@ fun ObjectifScreen(
             )
         }
     }
+
+
 }
 
 @Preview(showBackground = true)
 @Composable
 fun ObjectifScreenPreview() {
     PllRunTheme {
-        ObjectifScreen( null,{ }, { })
+        ObjectifScreen( null,{ }, { },1)
     }
 }

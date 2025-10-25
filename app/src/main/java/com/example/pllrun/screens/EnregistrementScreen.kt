@@ -71,6 +71,7 @@ import com.example.pllrun.R
 import com.example.pllrun.calculator.calculHeureCouche
 import com.example.pllrun.calculator.calculTotalCalories
 import com.example.pllrun.calculator.calculTotalMinutesSleep
+import com.example.pllrun.components.DatePickerComponent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import java.time.LocalDate
@@ -88,7 +89,7 @@ fun EnregistrementScreen(
     var poids by remember { mutableStateOf("") }
     var taille by remember { mutableStateOf("") }
     var niveau by remember { mutableStateOf(NiveauExperience.DEBUTANT) }
-    var dateDeNaissance by remember { mutableStateOf<LocalDate?>(LocalDate.now()) }
+    var dateDeNaissance by remember { mutableStateOf<LocalDate>(LocalDate.now()) }
 
     // Nouveaux états pour les champs ajoutés
     var poidsCible by remember { mutableStateOf("") }
@@ -667,43 +668,14 @@ fun EnregistrementScreen(
 
     // --- Dialogue DatePicker ---
     if (showDatePicker) {
-        // Initialise l'état du DatePicker. On peut pré-sélectionner une date (ex: 18 ans en arrière).
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = dateDeNaissance?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
-                ?: LocalDate.now().minusYears(18).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-            selectableDates = object : SelectableDates {
-                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                    // Empêche de sélectionner une date dans le futur
-                    return utcTimeMillis <= Instant.now().toEpochMilli()
-                }
-            }
-        )
+        DatePickerComponent(
+            initialDate = dateDeNaissance,
+            onDateSelected = { newDate ->
+                dateDeNaissance = newDate
 
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let {
-                            // Convertit le timestamp (Long) en LocalDate
-                            dateDeNaissance = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
-                        }
-                        showDatePicker = false // Ferme le dialogue
-                    }
-                ) {
-                    Text("OK")
-                }
             },
-            dismissButton = {
-                Button(
-                    onClick = { showDatePicker = false }
-                ) {
-                    Text("Annuler")
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+            onDismiss = { showDatePicker = false } // Cache le dialogue
+        )
     }
     }
 private fun isFormValid(
