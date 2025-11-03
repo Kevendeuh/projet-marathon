@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -55,6 +56,9 @@ import com.example.pllrun.components.ObjectifsListContent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import java.time.LocalTime
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Restaurant
+
 
 
 @Composable
@@ -132,11 +136,18 @@ fun HubScreen(
 
                 item {
                     TaskCard(
-                        title = "A Faire",
+                        title = "Objectifs en cours",
                         onThreeDotsClick = onPlanningSport,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 24.dp)
+                            .padding(bottom = 24.dp),
+                        icon = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_flag),
+                                contentDescription = "Icône d'objectif",
+                                tint = Color(0xFFFF751F) // Couleur orange
+                            )
+                        },
                     ) {
                         utilisateurPrincipal?.let { user ->
                             ObjectifsListContent(
@@ -153,7 +164,7 @@ fun HubScreen(
 
                 item {
                     Text(
-                        text = "Défis À Suivre",
+                        text = "Conseils santé",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black,
@@ -175,10 +186,22 @@ fun HubScreen(
                         }
                         TaskCard(
                             title = "Sommeil",
-                            onThreeDotsClick = { /* ... */ },
+                            // AJOUT : Passage de l'icône
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Default.Bedtime,                                    contentDescription = "Icône de sommeil",
+                                    tint = Color(0xFFFF751F) // Couleur orange
+                                )
+                            },
+                            onThreeDotsClick = { /* TODO: Naviguer vers écran sommeil */ },
                             modifier = Modifier.weight(1f)
-                        ) {
-                            Text(text = descriptionSommeil, fontSize = 14.sp, color = Color.Gray)
+                        )
+                        {
+                            Text(
+                                text = descriptionSommeil,
+                                fontSize = 14.sp,
+                                color = Color.Gray
+                            )
                         }
 
                         var descriptionCalories = "estimation impossible veuillez renseigner utilisateur"
@@ -187,10 +210,22 @@ fun HubScreen(
                         }
                         TaskCard(
                             title = "À Manger",
-                            onThreeDotsClick = { /* ... */ },
+                            // AJOUT : Passage de l'icône
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Default.Restaurant,
+                                    contentDescription = "Icône de nourriture",
+                                    tint = Color(0xFFFF751F)
+                                )
+                            },
+                            onThreeDotsClick = { /* TODO: Naviguer vers écran nutrition */ },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text(text = descriptionCalories, fontSize = 14.sp, color = Color.Gray)
+                            Text(
+                                text = descriptionCalories,
+                                fontSize = 14.sp,
+                                color = Color.Gray,
+                            )
                         }
                     }
                 }
@@ -236,12 +271,16 @@ fun HubScreen(
     }
 }
 
+// Dans HubScreen.kt
+
 // Composant réutilisable pour les cartes de tâches
 @Composable
 fun TaskCard(
     title: String,
     onThreeDotsClick: () -> Unit,
     modifier: Modifier = Modifier,
+    // AJOUT : Paramètre optionnel pour l'icône
+    icon: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
@@ -257,14 +296,24 @@ fun TaskCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Titre de la carte
-            Text(
-                text = title,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
+            // MODIFICATION : Le titre est maintenant dans un Row pour accueillir l'icône
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 8.dp)
-            )
+            ) {
+                // Affiche l'icône si elle est fournie
+                icon?.let {
+                    it() // Exécute le Composable de l'icône
+                    Spacer(modifier = Modifier.width(8.dp)) // Espace entre l'icône et le titre
+                }
+                // Titre de la carte
+                Text(
+                    text = title,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            }
 
             content()
             Spacer(modifier = Modifier.height(16.dp)) // Ajout d'un espace avant les points
@@ -293,4 +342,5 @@ fun TaskCard(
         }
     }
 }
+
 
