@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -105,7 +106,7 @@ fun HubScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                    .padding(horizontal = 24.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -238,6 +239,7 @@ fun HubScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter) // Aligne le bouton en bas au centre de la Box
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(start = 24.dp, end = 24.dp, bottom = 24.dp) // Espace autour du bouton
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),

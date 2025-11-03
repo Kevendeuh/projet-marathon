@@ -83,6 +83,8 @@ import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.MediaStore
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.core.content.ContextCompat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -234,8 +236,9 @@ fun EnregistrementScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .background(Color(0xFFF1F1F1))
-            .padding(16.dp), // Réduit le padding général
+            .padding(24.dp), // Réduit le padding général
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Utilisation d'un Column scrollable pour gérer tous les champs
@@ -759,6 +762,7 @@ fun EnregistrementScreen(
             enabled = isButtonEnabled,
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .height(48.dp),
             shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF751F), disabledContainerColor = Color.LightGray)

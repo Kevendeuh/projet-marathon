@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -121,6 +123,8 @@ fun ObjectifScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF1F1F1)) // Fond gris clair
+            .statusBarsPadding()
+            .navigationBarsPadding()
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -393,81 +397,81 @@ fun ObjectifScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
+        Spacer(modifier = Modifier.weight(1f))
         // Bouton Enregistrer
-        Button(
-            onClick = {
-                if(viewModel != null){
-                    val nouvelObjectif = Objectif(
-                        nom = nomObjectif,
-                        dateDeDebut = LocalDate.now(),
-                        dateDeFin = LocalDate.now(),
-                        niveau = niveau,
-                        type = type,
-                        typeDecoupage = decoupage,
-                        tauxDeProgression = 0.0,
-                        description = descriptionObjectif,
-                        utilisateurId = utilisateurId,
-                        estValide = false
-                    )
-                    viewModel.addNewObjectif(objectif = nouvelObjectif)
 
-                }
+            Button(
+                onClick = {
+                    if (viewModel != null) {
+                        val nouvelObjectif = Objectif(
+                            nom = nomObjectif,
+                            dateDeDebut = LocalDate.now(),
+                            dateDeFin = LocalDate.now(),
+                            niveau = niveau,
+                            type = type,
+                            typeDecoupage = decoupage,
+                            tauxDeProgression = 0.0,
+                            description = descriptionObjectif,
+                            utilisateurId = utilisateurId,
+                            estValide = false
+                        )
+                        viewModel.addNewObjectif(objectif = nouvelObjectif)
 
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFF751F) // Orange
-            )
-        ) {
-            Text(
-                text = "Enregistrer",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-        }
+                    }
 
-        Spacer(modifier = Modifier.height(16.dp))
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFF751F) // Orange
+                )
+            ) {
+                Text(
+                    text = "Enregistrer",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
 
-        // Bouton Suivant
-        Button(
-            onClick = onSaveAndNext,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFF751F) // Orange
-            )
-        ) {
-            Text(
-                text = "Suivant",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-        }
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(8.dp))
+            // Bouton Suivant
+            Button(
+                onClick = onSaveAndNext,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFF751F) // Orange
+                )
+            ) {
+                Text(
+                    text = "Suivant",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
 
-        // Bouton Ignorer pour l'instant
-        TextButton(
-            onClick = onSkip,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "Ignorer pour l'instant",
-                fontSize = 16.sp,
-                color = Color.Gray
-            )
-        }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Bouton Ignorer pour l'instant
+            TextButton(
+                onClick = onSkip,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Ignorer pour l'instant",
+                    fontSize = 16.sp,
+                    color = Color.Gray
+                )
+            }
+
     }
-
 
 }
 
