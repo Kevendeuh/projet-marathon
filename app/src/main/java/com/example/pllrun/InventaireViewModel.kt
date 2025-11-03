@@ -28,9 +28,10 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
     /**
      * Inserts the new Utilisateur into database.
      */
-    fun addNewUtilisateur(nom: String ="", prenom: String = "", dateDeNaissance: LocalDate? = null, sexe: Sexe = Sexe.NON_SPECIFIE, poids: Double = 0.0, poidsCible: Double=0.0, taille: Int = 0, vma: Double? = 0.0, fcm: Int? = 0, fcr: Int? = 0, niveauExperience: NiveauExperience = NiveauExperience.DEBUTANT, joursEntrainementDisponibles: List<JourSemaine> = emptyList()) {
+    fun addNewUtilisateur(nom: String ="", prenom: String = "",imageUri: String?, dateDeNaissance: LocalDate? = null, sexe: Sexe = Sexe.NON_SPECIFIE, poids: Double = 0.0, poidsCible: Double=0.0, taille: Int = 0, vma: Double? = 0.0, fcm: Int? = 0, fcr: Int? = 0, niveauExperience: NiveauExperience = NiveauExperience.DEBUTANT, joursEntrainementDisponibles: List<JourSemaine> = emptyList()) {
         val newUtilisateur = getNewUtilisateurEntry( nom = nom,
-            prenom =prenom,
+            prenom = prenom,
+            imageUri = imageUri,
             dateDeNaissance = dateDeNaissance,
             sexe = sexe,
             poids = poids,
@@ -203,6 +204,7 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
 
         nom: String,
         prenom: String,
+        imageUri: String?,
         dateDeNaissance: LocalDate?,
         sexe: Sexe,
         poids: Double,

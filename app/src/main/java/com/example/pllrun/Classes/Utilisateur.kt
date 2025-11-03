@@ -39,6 +39,8 @@ data class Utilisateur(
     var dateDeNaissance: LocalDate? = null,
     @ColumnInfo(name = "sexe")
     var sexe: Sexe = Sexe.NON_SPECIFIE,
+    @ColumnInfo(name = "imageUri")
+    var imageUri: String? = null,
 
     // --- Paramètres physiologiques (modifiables) ---
     @ColumnInfo(name = "poids")

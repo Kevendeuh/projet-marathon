@@ -1,6 +1,11 @@
 package com.example.pllrun.screens
 
+import android.content.Context
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,6 +35,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -49,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -63,6 +70,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.FileProvider
 import com.example.pllrun.Classes.TypeDecoupage
 import com.example.pllrun.Classes.Sexe
 import com.example.pllrun.InventaireViewModel
@@ -71,33 +79,88 @@ import com.example.pllrun.R
 import com.example.pllrun.calculator.calculHeureCouche
 import com.example.pllrun.calculator.calculTotalCalories
 import com.example.pllrun.calculator.calculTotalMinutesSleep
+import android.content.ContentValues
+import android.content.pm.PackageManager
+import android.os.Build
+import android.provider.MediaStore
+import androidx.core.content.ContextCompat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import coil.compose.AsyncImage
 import com.example.pllrun.components.DatePickerComponent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import java.io.File
 import java.time.LocalDate
 import kotlin.text.lowercase
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnregistrementScreen(
     viewModel: InventaireViewModel?,
     onNext: () -> Unit,
 ) {
-    // États pour les champs de formulaire existants
+    // --- ÉTATS POUR L'IMAGE ---
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var showImageSourceDialog by remember { mutableStateOf(false) }
+
+    // --- LANCEURS POUR LES ACTIVITÉS ---
+    // Lanceur pour sélectionner une image depuis la galerie
+    val pickMediaLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            imageUri = uri
+        }
+    }
+
+    // Lanceur pour prendre une photo avec l'appareil photo
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        // Le résultat 'success' est true si l'image a été sauvegardée dans l'URI fournie.
+        // L'URI est déjà dans 'imageUri' avant le lancement.
+        if (!success) {
+            // Si l'utilisateur annule, on remet l'URI à null pour ne pas avoir d'image vide.
+            imageUri = null
+        }
+    }
+
+    // --- GESTION DES PERMISSIONS ---
+    val context = LocalContext.current
+    var hasCameraPermission by remember { mutableStateOf(
+        // On vérifie l'état initial de la permission
+        ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+    )}
+
+    // Launcher pour demander la permission
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasCameraPermission = isGranted
+        if (!isGranted) {
+            // Optionnel : Avertir l'utilisateur que la permission est nécessaire
+            Toast.makeText(context, "La permission de la caméra est requise pour prendre une photo.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // États pour les champs de formulaire
     var nom by remember { mutableStateOf("") }
     var prenom by remember { mutableStateOf("") }
     var poids by remember { mutableStateOf("") }
     var taille by remember { mutableStateOf("") }
     var niveau by remember { mutableStateOf(NiveauExperience.DEBUTANT) }
     var dateDeNaissance by remember { mutableStateOf<LocalDate>(LocalDate.now()) }
+    var sexe by remember { mutableStateOf(Sexe.NON_SPECIFIE) }
 
-    // Nouveaux états pour les champs ajoutés
+    // États pour les champs optionnels
     var poidsCible by remember { mutableStateOf("") }
     var vma by remember { mutableStateOf("") }
     var fcm by remember { mutableStateOf("") }
     var fcr by remember { mutableStateOf("") }
-
-    var sexe by remember { mutableStateOf(Sexe.NON_SPECIFIE) }
 
     //variable pour le bouton de suppression utilisateur
     //var utilisateurPrincipal by remember { mutableStateOf<Utilisateur>(Utilisateur()) }
@@ -108,12 +171,12 @@ fun EnregistrementScreen(
     // États pour les menus déroulants
     var sexeExpanded by remember { mutableStateOf(false) }
     var niveauExpanded by remember { mutableStateOf(false) }
-    var showDatePicker by remember { mutableStateOf(false) } // État pour contrôler l'ouverture du dialogue
+    var showDatePicker by remember { mutableStateOf(false) }
+
     // Options pour les menus déroulants
     val isButtonEnabled = remember(nom, prenom, dateDeNaissance, joursSelectionnes, poidsCible) {
         isFormValid(nom=nom, prenom=prenom, dateDeNaissance= dateDeNaissance , poids = poids.toDoubleOrNull(), taille=taille.toIntOrNull(), joursEntrainementDisponibles = joursSelectionnes.toList() )
     }
-    val context = LocalContext.current
 
 
     // --- Fonction de Sauvegarde ---
@@ -127,6 +190,7 @@ fun EnregistrementScreen(
         viewModel?.addNewUtilisateur(
             nom = nom,
             prenom = prenom,
+            imageUri = imageUri?.toString(),
             dateDeNaissance = dateDeNaissance,
             sexe = sexe,
             poids = poids.toDouble(),
@@ -181,42 +245,78 @@ fun EnregistrementScreen(
                 textAlign = TextAlign.Center
             )
 
-            // Photo de profil ronde - TAILLE RÉDUITE
+            // --- PHOTO DE PROFIL MODIFIÉE ---
             Box(
                 modifier = Modifier
-                    .size(80.dp) // Réduit de 120dp à 80dp
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE0E0E0), CircleShape)
-                    .clickable { /* TODO: Ouvrir la galerie */ }
+                    .size(120.dp) // Taille un peu plus grande pour la visibilité
                     .align(Alignment.CenterHorizontally),
                 contentAlignment = Alignment.Center
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.user_icon),
-                    contentDescription = "Ajouter une photo de profil",
-                    modifier = Modifier.size(30.dp) // Réduit la taille de l'icône
+                // Affiche l'image sélectionnée ou l'icône par défaut
+                AsyncImage(
+                    model = imageUri ?: R.drawable.user_icon,
+                    contentDescription = "Photo de profil",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFE0E0E0), CircleShape),
+                    contentScale = if (imageUri != null) ContentScale.Crop else ContentScale.Inside
                 )
+
+                // Icône appareil photo en bas à droite
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFF751F)) // Couleur orange
+                        .clickable { showImageSourceDialog = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_camera), // Créez cette icône
+                        contentDescription = "Changer de photo",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+
+                    // --- MENU DÉROULANT POUR LE CHOIX DE LA SOURCE ---
+                    DropdownMenu(
+                        expanded = showImageSourceDialog,
+                        onDismissRequest = { showImageSourceDialog = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Ouvrir la galerie") },
+                            onClick = {
+                                showImageSourceDialog = false
+                                pickMediaLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Prendre une photo") },
+                            onClick = {
+                                showImageSourceDialog = false
+                                if (hasCameraPermission) {
+                                    // La permission est déjà accordée, on lance l'appareil photo
+                                    val uri = createImageUriForCamera(context)
+                                    if (uri != null) {
+                                        imageUri = uri
+                                        takePictureLauncher.launch(uri)
+                                    } else {
+                                        Toast.makeText(context, "Impossible de créer le fichier image.", Toast.LENGTH_SHORT).show()
+                                    }
+                                } else {
+                                    // La permission n'est pas accordée, on la demande
+                                    permissionLauncher.launch(android.Manifest.permission.CAMERA)
+                                }
+                            }
+                        )
+                    }
+                }
             }
-
-            // Texte "Ajouter une photo de profil"
-            Text(
-                text = "Ajouter une photo de profil",
-                fontSize = 12.sp, // Réduit la taille de police
-                color = Color.Gray,
-                modifier = Modifier
-                    .padding(bottom = 12.dp)
-                    .align(Alignment.CenterHorizontally)
-            )
-
-            // Ligne séparatrice
-            Divider(
-                color = Color(0xFFE0E0E0),
-                thickness = 1.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-            )
 
             // Informations personnelles
             Text(
@@ -745,15 +845,15 @@ fun DayCheckboxGrid(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp), // Coins arrondis pour la carte
+        shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White) // Fond blanc pour la carte
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 "Jours d'entraînement préférés",
                 fontWeight = FontWeight.Bold,
-                fontSize = 16.sp, // Légèrement plus grand pour un titre de section
+                fontSize = 16.sp,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
@@ -762,11 +862,9 @@ fun DayCheckboxGrid(
             jours.forEach { rowItems ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    // Utiliser Start au lieu de SpaceAround pour un meilleur alignement à gauche
                     horizontalArrangement = Arrangement.Start
                 ) {
                     rowItems.forEach { day ->
-                        // On utilise un weight pour que chaque colonne prenne la même largeur
                         Box(modifier = Modifier.weight(1f)) {
                             DayCheckbox(
                                 day = day,
@@ -786,4 +884,56 @@ fun DayCheckboxGrid(
         }
     }
 }
+
+fun getTmpFileUri(context: Context): Uri {
+    val tmpFile = File.createTempFile("temp_image_${System.currentTimeMillis()}", ".jpg", context.cacheDir).apply {        createNewFile()
+        deleteOnExit()
+    }
+
+    return FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.provider",
+        tmpFile
+    )
+}
+
+/**
+ * Crée une entrée vide dans le MediaStore (Galerie "Pictures" du téléphone)
+ * et retourne son URI. Cette URI sera utilisée par l'application Appareil Photo
+ * pour sauvegarder l'image dans un stockage permanent.
+ *
+ * @param context Le contexte de l'application.
+ * @return L'Uri de la future image.
+ */
+fun createImageUriForCamera(context: Context): Uri? {
+    val resolver = context.contentResolver
+
+    // Le nom du fichier sera basé sur la date et l'heure actuelles
+    val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+    val imageFileName = "PLLRUN_PROFILE_$timeStamp.jpg"
+
+    // ContentValues contient les métadonnées de l'image
+    val contentValues = ContentValues().apply {
+        put(MediaStore.MediaColumns.DISPLAY_NAME, imageFileName)
+        put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+        // Indique que le fichier doit être placé dans le répertoire Pictures
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/PLL-Run")
+        }
+    }
+
+    // Crée l'entrée dans la collection d'images du MediaStore
+    // Pour Android Q (API 29) et supérieur, on utilise la collection externe.
+    val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+    } else {
+        // Pour les versions plus anciennes, on utilise la collection externe standard.
+        MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+    }
+
+    // Insère la nouvelle entrée et retourne son URI
+    return resolver.insert(collection, contentValues)
+}
+
+
 
