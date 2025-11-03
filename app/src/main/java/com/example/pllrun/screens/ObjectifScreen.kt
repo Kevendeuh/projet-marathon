@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,8 +79,21 @@ fun ObjectifScreen(
     var niveau by remember { mutableStateOf(NiveauExperience.DEBUTANT) }
     var type by remember { mutableStateOf(TypeObjectif.MARATHON) }
     var decoupage by remember { mutableStateOf(TypeDecoupage.UNIQUE) }
-
     var descriptionObjectif by remember { mutableStateOf("") }
+
+    // Vérification du formulaire
+    val isFormValid by remember(nomObjectif, dateDebut, dateFin) {
+        derivedStateOf {
+            // Condition 1: Le nom de l'objectif ne doit pas être vide
+            val isNomValide = nomObjectif.isNotBlank()
+
+            // Condition 2: Il doit y avoir au moins 2 semaines (14 jours) entre la date de début et la date de fin
+            val isDateValide = Duration.between(dateDebut.atStartOfDay(), dateFin.atStartOfDay()).toDays() >= 14
+
+            // Le formulaire est valide si les deux conditions sont remplies
+            isNomValide && isDateValide
+        }
+    }
 
     // Options pour les menus déroulants
     var showDatePickerDebut by remember { mutableStateOf(false) }
@@ -178,8 +192,9 @@ fun ObjectifScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                     // Champ Date début
-                    Column(modifier = Modifier.weight(1f)
-                        .clickable( onClick = { showDatePickerDebut = true })) {
+                    Column(modifier = Modifier
+                        .weight(1f)
+                        .clickable(onClick = { showDatePickerDebut = true })) {
                         Text(
                             text = "Date début",
                             fontSize = 14.sp,
@@ -221,8 +236,11 @@ fun ObjectifScreen(
 
                 // Champ Date fin
 
-                Column(modifier = Modifier.weight(1f)
-                    .clickable { showDatePickerFin = true },) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { showDatePickerFin = true },
+                ) {
                     Text(
                             text = "Date fin",
                             fontSize = 14.sp,
@@ -398,64 +416,44 @@ fun ObjectifScreen(
         }
 
         Spacer(modifier = Modifier.weight(1f))
-        // Bouton Enregistrer
-
-            Button(
-                onClick = {
-                    if (viewModel != null) {
-                        val nouvelObjectif = Objectif(
-                            nom = nomObjectif,
-                            dateDeDebut = LocalDate.now(),
-                            dateDeFin = LocalDate.now(),
-                            niveau = niveau,
-                            type = type,
-                            typeDecoupage = decoupage,
-                            tauxDeProgression = 0.0,
-                            description = descriptionObjectif,
-                            utilisateurId = utilisateurId,
-                            estValide = false
-                        )
-                        viewModel.addNewObjectif(objectif = nouvelObjectif)
-
-                    }
-
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFF751F) // Orange
-                )
-            ) {
-                Text(
-                    text = "Enregistrer",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Bouton Suivant
-            Button(
-                onClick = onSaveAndNext,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFF751F) // Orange
-                )
-            ) {
-                Text(
-                    text = "Suivant",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
+        // Bouton Valider
+        Button(
+            onClick = {
+                if (viewModel != null) {
+                    val nouvelObjectif = Objectif(
+                        nom = nomObjectif,
+                        dateDeDebut = dateDebut,
+                        dateDeFin = dateFin,
+                        niveau = niveau,
+                        type = type,
+                        typeDecoupage = decoupage,
+                        tauxDeProgression = 0.0,
+                        description = descriptionObjectif,
+                        utilisateurId = utilisateurId,
+                        estValide = false
+                    )
+                    viewModel.addNewObjectif(objectif = nouvelObjectif)
+                    onSaveAndNext()
+                }
+            },
+            // --- NOUVEAU : Activation conditionnelle du bouton ---
+            enabled = isFormValid,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFFF751F), // Orange
+                disabledContainerColor = Color.LightGray // Couleur quand le bouton est désactivé
+            )
+        ) {
+            Text(
+                text = "Valider",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -465,7 +463,7 @@ fun ObjectifScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Ignorer pour l'instant",
+                    text = "Ignorer",
                     fontSize = 16.sp,
                     color = Color.Gray
                 )
