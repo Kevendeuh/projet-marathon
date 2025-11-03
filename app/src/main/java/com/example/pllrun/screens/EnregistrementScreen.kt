@@ -88,6 +88,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.pllrun.components.DatePickerComponent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
@@ -103,6 +104,7 @@ fun EnregistrementScreen(
     // --- ÉTATS POUR L'IMAGE ---
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var showImageSourceDialog by remember { mutableStateOf(false) }
+    var imageVersion by remember { mutableStateOf(0L) }
 
     // --- LANCEURS POUR LES ACTIVITÉS ---
     // Lanceur pour sélectionner une image depuis la galerie
@@ -111,6 +113,7 @@ fun EnregistrementScreen(
     ) { uri ->
         if (uri != null) {
             imageUri = uri
+            imageVersion = System.currentTimeMillis()
         }
     }
 
@@ -118,10 +121,11 @@ fun EnregistrementScreen(
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
-        // Le résultat 'success' est true si l'image a été sauvegardée dans l'URI fournie.
-        // L'URI est déjà dans 'imageUri' avant le lancement.
-        if (!success) {
-            // Si l'utilisateur annule, on remet l'URI à null pour ne pas avoir d'image vide.
+        if (success) {
+            // La photo a été prise et sauvegardée, on met à jour notre clé de version.
+            imageVersion = System.currentTimeMillis()
+        } else {
+            // L'utilisateur a annulé, on efface l'URI pour éviter une image vide.
             imageUri = null
         }
     }
@@ -141,8 +145,17 @@ fun EnregistrementScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         hasCameraPermission = isGranted
-        if (!isGranted) {
-            // Optionnel : Avertir l'utilisateur que la permission est nécessaire
+        if (isGranted) {
+            // La permission vient d'être accordée, on lance l'appareil photo MAINTENANT.
+            val uri = createImageUriForCamera(context)
+            if (uri != null) {
+                imageUri = uri
+                takePictureLauncher.launch(uri)
+            } else {
+                Toast.makeText(context, "Impossible de créer le fichier image.", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            // L'utilisateur a refusé la permission.
             Toast.makeText(context, "La permission de la caméra est requise pour prendre une photo.", Toast.LENGTH_LONG).show()
         }
     }
@@ -245,7 +258,7 @@ fun EnregistrementScreen(
                 textAlign = TextAlign.Center
             )
 
-            // --- PHOTO DE PROFIL MODIFIÉE ---
+            // --- PHOTO DE PROFIL ---
             Box(
                 modifier = Modifier
                     .size(120.dp) // Taille un peu plus grande pour la visibilité
@@ -254,7 +267,12 @@ fun EnregistrementScreen(
             ) {
                 // Affiche l'image sélectionnée ou l'icône par défaut
                 AsyncImage(
-                    model = imageUri ?: R.drawable.user_icon,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(imageUri ?: R.drawable.user_icon)
+                        .memoryCacheKey(imageVersion.toString()) // Clé de cache qui change
+                        .diskCacheKey(imageVersion.toString()) // Clé de cache disque
+                        .crossfade(true) // Effet de fondu agréable
+                        .build(),
                     contentDescription = "Photo de profil",
                     modifier = Modifier
                         .fillMaxSize()
@@ -883,18 +901,6 @@ fun DayCheckboxGrid(
             }
         }
     }
-}
-
-fun getTmpFileUri(context: Context): Uri {
-    val tmpFile = File.createTempFile("temp_image_${System.currentTimeMillis()}", ".jpg", context.cacheDir).apply {        createNewFile()
-        deleteOnExit()
-    }
-
-    return FileProvider.getUriForFile(
-        context,
-        "${context.packageName}.provider",
-        tmpFile
-    )
 }
 
 /**
