@@ -140,6 +140,7 @@ fun UtilisateurScreen(viewModel: InventaireViewModel) {
                         viewModel.addNewUtilisateur(
                             nom = "$newUtilisateurPrenom $utilisateurCount",
                             prenom = newUtilisateurNom,
+                            imageUri = "",
                             poids = 75.5,
                             taille = 180,
                             dateDeNaissance = LocalDate.of(2003, 5, 9),

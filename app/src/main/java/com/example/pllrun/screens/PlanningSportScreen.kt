@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,6 +47,7 @@ fun PlanningSportScreen() {
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF1F1F1)) // Fond gris clair
+            .statusBarsPadding()
             .padding(24.dp)
     ) {
         // Header avec titre et navigation du mois

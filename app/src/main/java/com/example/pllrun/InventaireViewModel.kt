@@ -15,6 +15,7 @@ import com.example.pllrun.Classes.UtilisateurDao
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.DayOfWeek
@@ -31,9 +32,10 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
     /**
      * Inserts the new Utilisateur into database.
      */
-    fun addNewUtilisateur(nom: String ="", prenom: String = "", dateDeNaissance: LocalDate? = null, sexe: Sexe = Sexe.NON_SPECIFIE, poids: Double = 0.0, poidsCible: Double=0.0, taille: Int = 0, vma: Double? = 0.0, fcm: Int? = 0, fcr: Int? = 0, niveauExperience: NiveauExperience = NiveauExperience.DEBUTANT, joursEntrainementDisponibles: List<JourSemaine> = emptyList()) {
+    fun addNewUtilisateur(nom: String ="", prenom: String = "",imageUri: String?, dateDeNaissance: LocalDate? = null, sexe: Sexe = Sexe.NON_SPECIFIE, poids: Double = 0.0, poidsCible: Double=0.0, taille: Int = 0, vma: Double? = 0.0, fcm: Int? = 0, fcr: Int? = 0, niveauExperience: NiveauExperience = NiveauExperience.DEBUTANT, joursEntrainementDisponibles: List<JourSemaine> = emptyList()) {
         val newUtilisateur = getNewUtilisateurEntry( nom = nom,
-            prenom =prenom,
+            prenom = prenom,
+            imageUri = imageUri,
             dateDeNaissance = dateDeNaissance,
             sexe = sexe,
             poids = poids,
@@ -123,6 +125,8 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
     fun updateObjectif(objectif: Objectif) {
         viewModelScope.launch {
             objectifDao.updateObjectif(objectif)
+
+            recalculateObjectifProgress(objectif.id)
         }
     }
 
@@ -148,21 +152,35 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
         if (objectifId == null) return
 
         viewModelScope.launch {
+            val objectif = objectifDao.getObjectifById(objectifId).firstOrNull()
+            if (objectif == null) return@launch // Sortir si l'objectif n'existe pas
+
             // Récupère le nombre total d'activités et le nombre d'activités complétées
-            val totalActivites = objectifDao.countTotalActivitesForObjectif(objectifId)
-            val completedActivites = objectifDao.countCompletedActivitesForObjectif(objectifId)
-
-            // Évite la division par zéro si un objectif n'a pas encore d'activités
-            if (totalActivites > 0) {
-                // Calcule le ratio d'activités complétées (une valeur entre 0.0 et 1.0)
-                val completionRatio = completedActivites.toDouble() / totalActivites.toDouble()
-
-                // Applique ce ratio à la progression maximale de 80%
-                val newProgress = completionRatio * 80.0
-
-                // Met à jour la base de données avec le nouveau taux de progression
-                objectifDao.updateObjectifProgress(objectifId, newProgress)
+            val newProgress: Double
+            if (objectif.estValide) {
+                // Si l'objectif est validé, forcer la progression à 100%.
+                newProgress = 100.0
             }
+            else {
+                val totalActivites = objectifDao.countTotalActivitesForObjectif(objectifId)
+                val completedActivites = objectifDao.countCompletedActivitesForObjectif(objectifId)
+                // Évite la division par zéro si un objectif n'a pas encore d'activités
+                if (totalActivites > 0) {
+                    // Calcule le ratio d'activités complétées (une valeur entre 0.0 et 1.0)
+                    val completionRatio = completedActivites.toDouble() / totalActivites.toDouble()
+
+                    // Applique ce ratio à la progression maximale de 80%
+                    newProgress = completionRatio * 80.0
+
+                    // Met à jour la base de données avec le nouveau taux de progression
+                }
+                else{
+                    newProgress = 0.0
+                }
+
+            }
+            objectifDao.updateObjectifProgress(objectifId, newProgress)
+
         }
     }
 
@@ -195,6 +213,7 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
 
         nom: String,
         prenom: String,
+        imageUri: String?,
         dateDeNaissance: LocalDate?,
         sexe: Sexe,
         poids: Double,
