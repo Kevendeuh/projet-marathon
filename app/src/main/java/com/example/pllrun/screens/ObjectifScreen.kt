@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -87,6 +88,21 @@ fun ObjectifScreen(
     var showDecoupageDropdown by remember { mutableStateOf(false) }
 
     val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+
+    // --- État dérivé pour la validité du formulaire ---
+    val isFormValid by remember(nomObjectif, dateDebut, dateFin) {
+        derivedStateOf {
+            // Condition 1 : Le nom de l'objectif ne doit pas être vide ou contenir que des espaces.
+            val isNomValide = nomObjectif.isNotBlank()
+
+            // Condition 2 : Il doit y avoir au moins 2 semaines (14 jours) entre les dates.
+            // Duration.between est exclusif pour la date de fin, donc on compare avec 13 pour avoir 14 jours inclus.
+            val isDateValide = Duration.between(dateDebut.atStartOfDay(), dateFin.atStartOfDay()).toDays() >= 14
+
+            // Le formulaire est valide si les deux conditions sont remplies
+            isNomValide && isDateValide
+        }
+    }
 
     // --- AFFICHAGE CONDITIONNEL DES DIALOGUES DE DATE ---
     // Cette logique s'activera dès que le booléen correspondant passera à true
@@ -174,8 +190,9 @@ fun ObjectifScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                     // Champ Date début
-                    Column(modifier = Modifier.weight(1f)
-                        .clickable( onClick = { showDatePickerDebut = true })) {
+                    Column(modifier = Modifier
+                        .weight(1f)
+                        .clickable(onClick = { showDatePickerDebut = true })) {
                         Text(
                             text = "Date début",
                             fontSize = 14.sp,
@@ -217,8 +234,11 @@ fun ObjectifScreen(
 
                 // Champ Date fin
 
-                Column(modifier = Modifier.weight(1f)
-                    .clickable { showDatePickerFin = true },) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { showDatePickerFin = true },
+                ) {
                     Text(
                             text = "Date fin",
                             fontSize = 14.sp,
@@ -411,12 +431,13 @@ fun ObjectifScreen(
                         utilisateurId = utilisateurId,
                         estValide = false
                     )
-                    viewModel.addNewObjectif(objectif= nouvelObjectif, generateActivities = true)
+                    viewModel.addNewObjectif(objectif= nouvelObjectif, generateActivities = false)
                     onSaveAndNext()
 
                 }
 
             },
+            enabled = isFormValid,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
@@ -435,9 +456,26 @@ fun ObjectifScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Bouton Suivant
+        // Bouton Enregistrer avec activités
         Button(
-            onClick = onSaveAndNext,
+            onClick = {if(viewModel != null){
+                val nouvelObjectif = Objectif(
+                    nom = nomObjectif,
+                    dateDeDebut = dateDebut,
+                    dateDeFin = dateFin,
+                    niveau = niveau,
+                    type = type,
+                    typeDecoupage = decoupage,
+                    tauxDeProgression = 0.0,
+                    description = descriptionObjectif,
+                    utilisateurId = utilisateurId,
+                    estValide = false
+                )
+                viewModel.addNewObjectif(objectif= nouvelObjectif, generateActivities = true)
+                onSaveAndNext()
+            }
+            },
+            enabled = isFormValid,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -447,7 +485,7 @@ fun ObjectifScreen(
             )
         ) {
             Text(
-                text = "Suivant",
+                text = "Enregistrer avec activités",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
@@ -462,7 +500,7 @@ fun ObjectifScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = "Ignorer pour l'instant",
+                text = "Ignorer",
                 fontSize = 16.sp,
                 color = Color.Gray
             )
