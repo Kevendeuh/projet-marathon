@@ -8,15 +8,21 @@ import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.Period
 
+data class ApportsNutritionnels(
+    val calories: Float,
+    val proteines: Float, // en grammes
+    val glucides: Float,  // en grammes
+    val lipides: Float     // en grammes
+)
 object CaloriesGenerator {
 
     fun calculateTotalCalories(
         utilisateur: Utilisateur?,
         activitesDuJour: List<Activite>
-    ): Float {
+    ): ApportsNutritionnels {
         // Si l'utilisateur n'est pas fourni, on ne peut rien calculer.
         if (utilisateur == null) {
-            return 0F
+            return ApportsNutritionnels(0F,0F,0F,0F)
         }
 
         // 1. Calcul du métabolisme de base (RMR)
@@ -46,7 +52,14 @@ object CaloriesGenerator {
         // Plafonnage
         coefficient = coefficient.coerceAtMost(2.5F)
 
+        val calorieJournaliere = rmr * coefficient * facteurPoidsCible
+
+        val proteines = (calorieJournaliere * 0.2F) / 4F
+        val glucides = (calorieJournaliere * 0.3F) / 4F
+        val lipides = (calorieJournaliere * 0.5F) / 4F
+
+
         // 4. Calcul final
-        return rmr * coefficient * facteurPoidsCible
+        return ApportsNutritionnels(calorieJournaliere, proteines, glucides, lipides)
     }
 }
