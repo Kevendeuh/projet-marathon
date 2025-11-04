@@ -21,8 +21,16 @@ import java.time.LocalDate
 import java.time.DayOfWeek
 import java.time.Duration
 import com.example.pllrun.util.toDayOfWeek
-
-
+import java.time.temporal.WeekFields
+import java.util.Locale
+import kotlin.math.roundToInt
+import com.example.pllrun.util.TimeMapping.minutesPreset
+import com.example.pllrun.util.TimeMapping.qualityCount
+import com.example.pllrun.util.TimeMapping.pickLongDay
+import com.example.pllrun.util.TimeMapping.pickQualityDays
+import com.example.pllrun.util.TimeMapping.longNote
+import com.example.pllrun.util.TimeMapping.qualityNote
+import com.example.pllrun.util.TimeMapping.easyNote
 /**
  * View Model to keep a reference to the Inventory repository and an up-to-date list of all items.
  *
@@ -246,39 +254,75 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
             // 1) Insère l’objectif et récupère son id
             val objectifId = objectifDao.insertObjectif(obj)
 
-            // 2) Récupère l’utilisateur pour connaître ses jours d’entraînement
+            // 2) Récupère l’utilisateur (si tu n’as pas getUtilisateurNow, utilise la ligne commentée)
             val user = utilisateurDao.getUtilisateurNow(obj.utilisateurId)
+            // val user = utilisateurDao.getItem(obj.utilisateurId).firstOrNull()
                 ?: return@launch
 
-            val trainingDays: Set<DayOfWeek> =
+            // 3) Jours d’entraînement choisis
+            val trainingDays: List<DayOfWeek> =
                 if (user.joursEntrainementDisponibles.isNotEmpty())
-                    user.joursEntrainementDisponibles.map { it.toDayOfWeek() }.toSet()
-                else emptySet()
+                    user.joursEntrainementDisponibles.map { it.toDayOfWeek() }.sortedBy { it.value }
+                else listOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY, DayOfWeek.SUNDAY) // fallback 3j/sem
 
-            // 3) Liste des dates entre début et fin sur les jours choisis
-            val dates = enumerateDates(obj.dateDeDebut, obj.dateDeFin, trainingDays)
+            // 4) Toutes les dates dans l’intervalle qui tombent sur ces jours
+            val dates = enumerateDates(obj.dateDeDebut, obj.dateDeFin, trainingDays.toSet())
+            if (dates.isEmpty()) return@launch
 
-            // 4) Crée et insère les Activite “placeholder”
-            for (date in dates) {
-                val (nom, desc) = defaultLabelFor(date.dayOfWeek, obj.type)
-                val activite = Activite(
-                    id = 0,
-                    objectifId = objectifId,
-                    nom = nom,
-                    description = desc,
-                    date = date,
-                    distanceEffectuee = 0.0,
-                    tempsEffectue = Duration.ZERO,
-                    typeActivite = obj.type,
-                    estComplete = false,
-                    niveau = obj.niveau
-                )
-                objectifDao.insertActivite(activite)
+            // 5) Groupes par semaine ISO (année + semaine)
+            val wf = WeekFields.of(Locale.FRANCE) // ISO
+            val byWeek = dates.groupBy { d -> d.get(wf.weekBasedYear()) to d.get(wf.weekOfWeekBasedYear()) }
+
+            // 6) Presets en minutes selon le niveau
+            val (baseLong, baseQual, baseEasy) = minutesPreset(user.niveauExperience)
+
+            // 7) Pour chaque semaine, distribuer LONG / QUALITÉ / EASY
+            byWeek.toSortedMap(compareBy<Pair<Int, Int>>({ it.first }, { it.second })).forEach { (_, weekDatesUnsorted) ->
+                val weekDates = weekDatesUnsorted.sorted()
+                val sessions = weekDates.size
+
+                // combien de qualités selon niveau & nb séances
+                val qCount = qualityCount(user.niveauExperience, sessions)
+
+                // choisir la journée de sortie longue (dimanche si possible, sinon la dernière)
+                val longDate = pickLongDay(weekDates)
+
+                // choisir 0-2 journées qualité (mardi/jeudi si possibles, sinon le plus tôt)
+                val qualityDates = pickQualityDays(weekDates, longDate, qCount)
+
+                // crées les activités
+                weekDates.forEach { d ->
+                    val (label, minutes, note) = when {
+                        d == longDate -> Triple("[LONG] Sortie longue", baseLong, longNote(user.niveauExperience))
+                        qualityDates.contains(d) -> Triple("[QUALITÉ] Séance", baseQual, qualityNote(user.niveauExperience))
+                        else -> Triple("[EASY] Footing", baseEasy, easyNote(user.niveauExperience))
+                    }
+
+                    val nom = "$label • ~${minutes} min"
+                    val desc = "Niveau: ${user.niveauExperience.libelle} • $note"
+
+                    objectifDao.insertActivite(
+                        Activite(
+                            id = 0,
+                            objectifId = objectifId,
+                            nom = nom,
+                            description = desc,
+                            date = d,
+                            distanceEffectuee = 0.0,      // prévu: 0 -> sera rempli après séance
+                            tempsEffectue = Duration.ZERO, // prévu: 0 -> sera rempli après séance
+                            typeActivite = obj.type,       // MARATHON
+                            estComplete = false,
+                            niveau = obj.niveau
+                        )
+                    )
+                }
             }
 
+            // 8) Progression basée sur nb d’activités complétées
             recalculateObjectifProgress(objectifId)
         }
     }
+
 
     // Helpers privés à coller dans le ViewModel
     private fun enumerateDates(

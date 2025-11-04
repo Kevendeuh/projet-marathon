@@ -59,6 +59,8 @@ import kotlinx.coroutines.flow.firstOrNull
 import java.time.LocalTime
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Restaurant
+import java.time.LocalDate
+import androidx.compose.runtime.collectAsState
 
 
 
@@ -87,6 +89,9 @@ fun HubScreen(
             totalCaloriesSuggeree = calculTotalCalories(user, viewModel)
         }
     }
+    val today = remember { LocalDate.now() }
+    val activitesDuJour by viewModel.getActivitesForDay(today)
+        .collectAsState(initial = emptyList())
 
 
     // --- STRUCTURE PRINCIPALE AVEC BOX ---
@@ -159,6 +164,41 @@ fun HubScreen(
                                     showEditDialog = true
                                 },
                             )
+                        }
+                    }
+                }
+                item {
+                    TaskCard(
+                        title = "Activités du jour",
+                        onThreeDotsClick = onPlanningSport, // ouvre le planning si besoin
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 24.dp),
+                        // icône optionnelle
+                        icon = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_flag),
+                                contentDescription = "Séances du jour",
+                                tint = Color(0xFFFF751F)
+                            )
+                        }
+                    ) {
+                        if (activitesDuJour.isEmpty()) {
+                            Text(
+                                text = "Aucune activité planifiée pour aujourd’hui.",
+                                color = Color.Gray
+                            )
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                activitesDuJour
+                                    .sortedBy { it.heureDeDebut } // joli tri par heure
+                                    .forEach { act ->
+                                        ActivityRow(
+                                            act = act,
+                                            onClick = onPlanningSport   // ou ouvrir un écran de détail quand tu l’auras
+                                        )
+                                    }
+                            }
                         }
                     }
                 }
@@ -273,6 +313,52 @@ fun HubScreen(
     }
 }
 
+@Composable
+fun ActivityRow(
+    act: com.example.pllrun.Classes.Activite,
+    onClick: () -> Unit = {}
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFDFDFD)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = act.nom,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Black
+            )
+
+            // Ligne d’infos : heure • type • niveau • statut
+            val typeLibelle = try { act.typeActivite.libelle } catch (_: Throwable) { act.typeActivite.name }
+            val niveauLibelle = try { act.niveau.libelle } catch (_: Throwable) { act.niveau.name }
+            Text(
+                text = "${act.heureDeDebut} • $typeLibelle • $niveauLibelle" +
+                        if (act.estComplete) " • Terminé" else " • À faire",
+                fontSize = 13.sp,
+                color = Color(0xFF666666)
+            )
+
+            if (act.description.isNotBlank()) {
+                Text(
+                    text = act.description,
+                    fontSize = 13.sp,
+                    color = Color(0xFF7A7A7A)
+                )
+            }
+        }
+    }
+}
+
+
 // Dans HubScreen.kt
 
 // Composant réutilisable pour les cartes de tâches
@@ -343,6 +429,51 @@ fun TaskCard(
             }
         }
     }
+    @Composable
+    fun ActivityRow(
+        act: com.example.pllrun.Classes.Activite,
+        onClick: () -> Unit = {}
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFDFDFD)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = act.nom,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Black
+                )
+
+                // Ligne d’infos : heure • type • niveau • statut
+                val typeLibelle = try { act.typeActivite.libelle } catch (_: Throwable) { act.typeActivite.name }
+                val niveauLibelle = try { act.niveau.libelle } catch (_: Throwable) { act.niveau.name }
+                Text(
+                    text = "${act.heureDeDebut} • $typeLibelle • $niveauLibelle" +
+                            if (act.estComplete) " • Terminé" else " • À faire",
+                    fontSize = 13.sp,
+                    color = Color(0xFF666666)
+                )
+
+                if (act.description.isNotBlank()) {
+                    Text(
+                        text = act.description,
+                        fontSize = 13.sp,
+                        color = Color(0xFF7A7A7A)
+                    )
+                }
+            }
+        }
+    }
+
 }
 
 
