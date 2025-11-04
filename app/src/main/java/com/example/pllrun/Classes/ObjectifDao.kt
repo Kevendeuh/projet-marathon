@@ -99,14 +99,7 @@ interface ObjectifDao {
     @Query("SELECT * FROM Objectif WHERE utilisateurId = :utilisateurId AND est_valide = 1")
     fun getActifObjectifsByUserAsLiveData(utilisateurId: Long): LiveData<List<Objectif>>
 
-    // --- FONCTION RETOURNANT UN LIVEDATA POUR LES ACTIVITÉS ---
-    // Note : On utilise l'ID de l'utilisateur pour trouver ses activités via les objectifs.
-    @Query("""
-        SELECT a.* FROM activite AS a
-        INNER JOIN Objectif AS o ON a.objectifId = o.id
-        WHERE o.utilisateurId = :utilisateurId
-    """)
-    fun getAllActivitesByUserAsLiveData(utilisateurId: Long): LiveData<List<Activite>>
-
+    @Query("SELECT * FROM activite")
+    fun getAllActivites(): LiveData<List<Activite>>
 
 }

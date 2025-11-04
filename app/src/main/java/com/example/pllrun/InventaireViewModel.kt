@@ -240,9 +240,21 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
         return objectifDao.getObjectifsForUtilisateur(utilisateurId)
     }
 
+    fun getObjectifsForUtilisateurFlow(utilisateurId: Long): Flow<List<Objectif>> {
+        return objectifDao.getObjectifsForUtilisateurFlow(utilisateurId)
+    }
+
+    fun getObjectifsForUtilisateurAsLiveData(utilisateurId: Long): LiveData<List<Objectif>> {
+        return repository.getObjectifsForUtilisateurFlow(utilisateurId).asLiveData()
+    }
     fun getObjectifById(objectifId: Long): LiveData<Objectif> {
         return objectifDao.getObjectifById(objectifId)
     }
+
+    fun getAllActivites(): LiveData<List<Activite>> {
+        return objectifDao.getAllActivites()
+    }
+
     /**
      * Returns an instance of the [Item] entity class with the item info entered by the user.
      * This will be used to add a new entry to the Inventory database.

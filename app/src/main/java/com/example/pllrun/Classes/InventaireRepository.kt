@@ -88,5 +88,10 @@ class InventaireRepository(
         }
     }
 
+    fun getObjectifsForUtilisateurFlow(utilisateurId: Long): Flow<List<Objectif>> {
+        return objectifDao.getObjectifsForUtilisateurFlow(utilisateurId)
+    }
+
     fun getFirstUtilisateurFlow(): Flow<Utilisateur?> = utilisateurDao.getFirstUtilisateur()
+
 }
