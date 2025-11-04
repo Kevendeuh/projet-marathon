@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -292,7 +294,7 @@ fun CalendarDayCell(
     }
     Box(
         modifier = modifier
-            .height(60.dp)
+            .height(80.dp)
             .background(
                 color = backgroundColor,
                 shape = RoundedCornerShape(8.dp)
@@ -303,34 +305,38 @@ fun CalendarDayCell(
                 shape = RoundedCornerShape(8.dp)
             )
             .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
     ) {
         if (date != null) {
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                modifier = Modifier
+                    .fillMaxSize() // La colonne prend toute la place de la Box parente
+                    .padding(vertical = 8.dp, horizontal = 4.dp), // Marges en haut/bas
+                horizontalAlignment = Alignment.CenterHorizontally // Centre tous les enfants horizontalement
             ) {
                 Text(
                     text = date.dayOfMonth.toString(),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (isToday) Color.White else Color.Black
+                    color = if (isToday) Color.White else Color.Black,
+
                 )
 
-                Spacer(modifier = Modifier.height(4.dp)) // Ajoute un peu d'espace
+                Spacer(modifier = Modifier.weight(1f))
 
                 // On affiche le point seulement s'il y a des activités pour ce jour.
-                if (hasActivites) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .background(
-                                // La couleur du point est blanche si la cellule est orange (aujourd'hui),
-                                // sinon elle est orange.
-                                color = if (isToday) Color.White else Color(0xFFFF751F),
-                                shape = CircleShape
-                            )
-                    )
+                Box(modifier = Modifier.size(10.dp)) {
+                    if (hasActivites) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    color = if (isToday) Color.White else Color(0xFFFF751F),
+                                    shape = CircleShape
+                                )
+                        )
+                    }
+                    // Si pas d'activité, le Box de 10.dp est vide mais il occupe l'espace,
+                    // garantissant un alignement parfait du numéro en haut.
                 }
             }
         }
