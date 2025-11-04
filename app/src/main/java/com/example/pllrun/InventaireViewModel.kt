@@ -18,7 +18,19 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-
+import java.time.DayOfWeek
+import java.time.Duration
+import com.example.pllrun.util.toDayOfWeek
+import java.time.temporal.WeekFields
+import java.util.Locale
+import kotlin.math.roundToInt
+import com.example.pllrun.util.TimeMapping.minutesPreset
+import com.example.pllrun.util.TimeMapping.qualityCount
+import com.example.pllrun.util.TimeMapping.pickLongDay
+import com.example.pllrun.util.TimeMapping.pickQualityDays
+import com.example.pllrun.util.TimeMapping.longNote
+import com.example.pllrun.util.TimeMapping.qualityNote
+import com.example.pllrun.util.TimeMapping.easyNote
 /**
  * View Model to keep a reference to the Inventory repository and an up-to-date list of all items.
  *
@@ -55,9 +67,14 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
         }
     }
 
-    fun addNewObjectif(objectif: Objectif) {
-        viewModelScope.launch {
-            objectifDao.insertObjectif(objectif)
+    fun addNewObjectif(
+        objectif: Objectif,
+        generateActivities: Boolean = false
+    ) {
+        if (generateActivities) {
+            addNewObjectifAndGenerateActivities(objectif)
+        } else {
+            viewModelScope.launch { objectifDao.insertObjectif(objectif) }
         }
     }
 
@@ -232,6 +249,106 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
             joursEntrainementDisponibles = joursEntrainementDisponibles,
         )
     }
+    fun addNewObjectifAndGenerateActivities(obj: Objectif) {
+        viewModelScope.launch {
+            // 1) Insère l’objectif et récupère son id
+            val objectifId = objectifDao.insertObjectif(obj)
+
+            // 2) Récupère l’utilisateur (si tu n’as pas getUtilisateurNow, utilise la ligne commentée)
+            val user = utilisateurDao.getUtilisateurNow(obj.utilisateurId)
+            // val user = utilisateurDao.getItem(obj.utilisateurId).firstOrNull()
+                ?: return@launch
+
+            // 3) Jours d’entraînement choisis
+            val trainingDays: List<DayOfWeek> =
+                if (user.joursEntrainementDisponibles.isNotEmpty())
+                    user.joursEntrainementDisponibles.map { it.toDayOfWeek() }.sortedBy { it.value }
+                else listOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY, DayOfWeek.SUNDAY) // fallback 3j/sem
+
+            // 4) Toutes les dates dans l’intervalle qui tombent sur ces jours
+            val dates = enumerateDates(obj.dateDeDebut, obj.dateDeFin, trainingDays.toSet())
+            if (dates.isEmpty()) return@launch
+
+            // 5) Groupes par semaine ISO (année + semaine)
+            val wf = WeekFields.of(Locale.FRANCE) // ISO
+            val byWeek = dates.groupBy { d -> d.get(wf.weekBasedYear()) to d.get(wf.weekOfWeekBasedYear()) }
+
+            // 6) Presets en minutes selon le niveau
+            val (baseLong, baseQual, baseEasy) = minutesPreset(user.niveauExperience)
+
+            // 7) Pour chaque semaine, distribuer LONG / QUALITÉ / EASY
+            byWeek.toSortedMap(compareBy<Pair<Int, Int>>({ it.first }, { it.second })).forEach { (_, weekDatesUnsorted) ->
+                val weekDates = weekDatesUnsorted.sorted()
+                val sessions = weekDates.size
+
+                // combien de qualités selon niveau & nb séances
+                val qCount = qualityCount(user.niveauExperience, sessions)
+
+                // choisir la journée de sortie longue (dimanche si possible, sinon la dernière)
+                val longDate = pickLongDay(weekDates)
+
+                // choisir 0-2 journées qualité (mardi/jeudi si possibles, sinon le plus tôt)
+                val qualityDates = pickQualityDays(weekDates, longDate, qCount)
+
+                // crées les activités
+                weekDates.forEach { d ->
+                    val (label, minutes, note) = when {
+                        d == longDate -> Triple("[LONG] Sortie longue", baseLong, longNote(user.niveauExperience))
+                        qualityDates.contains(d) -> Triple("[QUALITÉ] Séance", baseQual, qualityNote(user.niveauExperience))
+                        else -> Triple("[EASY] Footing", baseEasy, easyNote(user.niveauExperience))
+                    }
+
+                    val nom = "$label • ~${minutes} min"
+                    val desc = "Niveau: ${user.niveauExperience.libelle} • $note"
+
+                    objectifDao.insertActivite(
+                        Activite(
+                            id = 0,
+                            objectifId = objectifId,
+                            nom = nom,
+                            description = desc,
+                            date = d,
+                            distanceEffectuee = 0.0,      // prévu: 0 -> sera rempli après séance
+                            tempsEffectue = Duration.ZERO, // prévu: 0 -> sera rempli après séance
+                            typeActivite = obj.type,       // MARATHON
+                            estComplete = false,
+                            niveau = obj.niveau
+                        )
+                    )
+                }
+            }
+
+            // 8) Progression basée sur nb d’activités complétées
+            recalculateObjectifProgress(objectifId)
+        }
+    }
+
+
+    // Helpers privés à coller dans le ViewModel
+    private fun enumerateDates(
+        start: LocalDate,
+        end: LocalDate,
+        allowed: Set<DayOfWeek>
+    ): List<LocalDate> {
+        if (start.isAfter(end) || allowed.isEmpty()) return emptyList()
+        val out = mutableListOf<LocalDate>()
+        var d = start
+        while (!d.isAfter(end)) {
+            if (d.dayOfWeek in allowed) out += d
+            d = d.plusDays(1)
+        }
+        return out
+    }
+
+    private fun defaultLabelFor(
+        dow: DayOfWeek,
+        type: com.example.pllrun.Classes.TypeObjectif
+    ): Pair<String, String> = when (dow) {
+        DayOfWeek.SUNDAY   -> "Sortie longue"  to "Endurance Z2 ; adaptée à l’objectif ${type.libelle}"
+        DayOfWeek.TUESDAY  -> "Séance qualité" to "Tempo/Intervalles léger selon niveau"
+        else               -> "Footing"        to "Z1–Z2 ; mobilité légère"
+    }
+
 
 
 
