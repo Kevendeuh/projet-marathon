@@ -1,8 +1,8 @@
 package com.example.pllrun.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.forEach
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,15 +30,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,20 +45,18 @@ import androidx.compose.ui.unit.sp
 import com.example.pllrun.Classes.Utilisateur
 import com.example.pllrun.InventaireViewModel
 import com.example.pllrun.R
-import com.example.pllrun.calculator.calculHeureCouche
-import com.example.pllrun.calculator.calculTotalCalories
-import com.example.pllrun.calculator.calculTotalMinutesSleep
-import com.example.pllrun.components.ObjectifCard
 import com.example.pllrun.components.ObjectifEditDialog
 import com.example.pllrun.components.ObjectifsListContent
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
 import java.time.LocalTime
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.runtime.livedata.observeAsState
+import java.time.format.DateTimeFormatter
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.geometry.isEmpty
 import java.time.LocalDate
-import androidx.compose.runtime.collectAsState
-
 
 
 @Composable
@@ -72,26 +67,33 @@ fun HubScreen(
     onAddGoal: () -> Unit,
 ) {
     // ... (Toutes les déclarations de variables restent les mêmes)
-    var utilisateurPrincipal by remember { mutableStateOf<Utilisateur?>(null) }
-    var tempsSommeilSuggere by remember { mutableStateOf<Long?>(null) }
-    var heureCoucheSuggeree by remember { mutableStateOf<LocalTime?>(null) }
-    var totalCaloriesSuggeree by remember { mutableStateOf<Float?>(null) }
     var showEditDialog by remember { mutableStateOf(false) }
     var selectedObjectifId by remember { mutableStateOf<Long?>(null) }
 
-    LaunchedEffect(key1 = true) {
-        // ... (Le code du LaunchedEffect reste le même)
-        val user = viewModel.getAllUtilisateurs().firstOrNull()?.firstOrNull()
-        if (user != null) {
-            utilisateurPrincipal = user
-            tempsSommeilSuggere = calculTotalMinutesSleep(user, viewModel)
-            heureCoucheSuggeree = calculHeureCouche(user, viewModel)
-            totalCaloriesSuggeree = calculTotalCalories(user, viewModel)
+    val utilisateurPrincipal by viewModel.getFirstUtilisateur().observeAsState(initial = null)
+    val activitesDuJour by viewModel.getActivitesForDay(LocalDate.now()).observeAsState(initial = emptyList())
+
+
+    val sleepMinutes by viewModel.getRecommendedSleepTime(utilisateurPrincipal?.id ?: -1).observeAsState(0L)
+    val bedtime by viewModel.getRecommendedBedtime(utilisateurPrincipal?.id ?: -1).observeAsState(LocalTime.of(22, 0))
+    val calories by viewModel.getRecommendedCalories(utilisateurPrincipal?.id ?: -1).observeAsState(0F)
+
+    // --- 2. CALCUL ET FORMATAGE DES DONNÉES (MAINTENANT DANS UN BLOC NON-COMPOSABLE) ---
+
+    // On utilise `remember` pour ne recalculer que lorsque les valeurs observées changent.
+    val (tempsSommeilSuggere, heureCoucheSuggeree, totalCaloriesSuggeree) = remember(utilisateurPrincipal, sleepMinutes, bedtime, calories) {
+        if (utilisateurPrincipal != null) {
+            val formattedSleepTime = if (sleepMinutes > 0) "${sleepMinutes / 60}h ${sleepMinutes % 60}min" else "N/A"
+            val formattedBedtime = bedtime.format(DateTimeFormatter.ofPattern("HH:mm"))
+            val formattedCalories = if (calories > 0) calories.toInt().toString() else "N/A"
+            Triple(formattedSleepTime, formattedBedtime, formattedCalories)
+        } else {
+            // Valeurs par défaut si l'utilisateur est null.
+            Triple("N/A", "N/A", "N/A")
         }
     }
-    val today = remember { LocalDate.now() }
-    val activitesDuJour by viewModel.getActivitesForDay(today)
-        .collectAsState(initial = emptyList())
+
+
 
 
     // --- STRUCTURE PRINCIPALE AVEC BOX ---
@@ -167,42 +169,27 @@ fun HubScreen(
                         }
                     }
                 }
+
+                // --- CARTE ACTIVITÉS DU JOUR ---
                 item {
                     TaskCard(
                         title = "Activités du jour",
-                        onThreeDotsClick = onPlanningSport, // ouvre le planning si besoin
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 24.dp),
-                        // icône optionnelle
-                        icon = {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_flag),
-                                contentDescription = "Séances du jour",
-                                tint = Color(0xFFFF751F)
-                            )
-                        }
+                        onThreeDotsClick = onPlanningSport,
+                        modifier = Modifier.padding(bottom = 24.dp),
+                        icon = { Icon(painterResource(R.drawable.ic_flag), "Activités", tint = Color(0xFFFF751F)) }
                     ) {
                         if (activitesDuJour.isEmpty()) {
-                            Text(
-                                text = "Aucune activité planifiée pour aujourd’hui.",
-                                color = Color.Gray
-                            )
+                            Text("Aucune activité planifiée pour aujourd’hui.", color = Color.Gray)
                         } else {
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                activitesDuJour
-                                    .sortedBy { it.heureDeDebut } // joli tri par heure
-                                    .forEach { act ->
-                                        ActivityRow(
-                                            act = act,
-                                            onClick = onPlanningSport   // ou ouvrir un écran de détail quand tu l’auras
-                                        )
-                                    }
+                                activitesDuJour.sortedBy { it.heureDeDebut }.forEach { act ->
+                                    ActivityRow(act = act, onClick = onPlanningSport)
+                                }
                             }
                         }
                     }
                 }
-
+                // --- SECTION CONSEILS SANTÉ ---
                 item {
                     Text(
                         text = "Conseils santé",

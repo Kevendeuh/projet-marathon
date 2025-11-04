@@ -64,7 +64,9 @@ import java.time.format.DateTimeFormatter
 import android.widget.DatePicker
 import android.widget.Toast
 import androidx.compose.foundation.gestures.forEach
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.pllrun.Classes.InventaireRepository
 import com.example.pllrun.Classes.NiveauExperience
 import java.util.Calendar
 import com.example.pllrun.nav.AppNavHost
@@ -74,11 +76,14 @@ class MainActivity : ComponentActivity() {
     // Initialize the ViewModel using the factory.
     // This connects the UI to your database logic.
     private val viewModel: InventaireViewModel by viewModels {
+        val database = InventaireRoomDatabase.getDatabase(applicationContext)
+        val repository = InventaireRepository(InventaireRoomDatabase.getDatabase(this).objectifDao(),InventaireRoomDatabase.getDatabase(this).utilisateurDao())
         //val database = (application as PllRunApplication).database
         InventaireViewModelFactory(
             utilisateurDao = InventaireRoomDatabase.getDatabase(this).utilisateurDao(),
             objectifDao = InventaireRoomDatabase.getDatabase(this).objectifDao(),
-            )
+            InventaireRepository = repository
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -108,7 +113,7 @@ class MainActivity : ComponentActivity() {
 fun UtilisateurScreen(viewModel: InventaireViewModel) {
     // Collect the list of users from the ViewModel as a state.
     // The UI will automatically recompose whenever this list changes.
-    val utilisateurList by viewModel.getAllUtilisateurs().collectAsState(initial = emptyList())
+    val utilisateurList by viewModel.getAllUtilisateurs().observeAsState(initial = emptyList())
     val coroutineScope = rememberCoroutineScope()
     var selectedUtilisateur by remember { mutableStateOf<Utilisateur?>(null) }
     var selectedObjectif by remember { mutableStateOf<Objectif?>(null) }
@@ -246,7 +251,7 @@ fun UtilisateurList(utilisateurs: List<Utilisateur>,
             }
             items(utilisateurs) { utilisateur ->
                 val objectifs by viewModel.getObjectifsForUtilisateur(utilisateur.id)
-                    .collectAsState(initial = emptyList())
+                    .observeAsState(initial = emptyList())
 
                 UtilisateurCard(
                     utilisateur = utilisateur,
@@ -334,7 +339,7 @@ fun ObjectifCard(
     onEditClick: () -> Unit,
     onActiviteEdit: (Activite) -> Unit
 ) {
-    val activites by viewModel.getActivitesForObjectif(objectif.id).collectAsState(initial = emptyList())
+    val activites by viewModel.getActivitesForObjectif(objectif.id).observeAsState(initial = emptyList())
     val coroutineScope = rememberCoroutineScope()
 
     Card(

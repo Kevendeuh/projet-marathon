@@ -57,7 +57,9 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.input.key.type
 import com.example.pllrun.Classes.TypeObjectif
 import com.example.pllrun.Classes.NiveauExperience
 /**
@@ -176,11 +178,7 @@ fun ObjectifsListContent(
     onObjectifClick: (Long) -> Unit
 ) {
     // Récupérez la liste des objectifs depuis le ViewModel
-    val objectifs by produceState<List<Objectif>>(initialValue = emptyList(), utilisateurId) {
-        viewModel.getObjectifsForUtilisateur(utilisateurId).collect { nouveauxObjectifs ->
-            value = nouveauxObjectifs // 'value' met à jour le state produit
-        }
-    }
+    val objectifs by viewModel.getObjectifsForUtilisateur(utilisateurId).observeAsState(initial = emptyList())
     if (objectifs.isEmpty()) {
         Text(
             text = "Aucun objectif défini. Appuyez sur 'Ajouter Objectif' pour commencer !",
@@ -211,38 +209,23 @@ fun ObjectifEditDialog(
     onDismiss: () -> Unit // Pour fermer le dialogue
 ) {
     // ---- CHARGEMENT ET ÉTATS DU FORMULAIRE ----
-    var objectifInitial by remember { mutableStateOf<Objectif?>(null) }
-    var nomObjectif by remember { mutableStateOf("") }
-    var dateDebut by remember { mutableStateOf(LocalDate.now()) }
-    var dateFin by remember { mutableStateOf(LocalDate.now()) }
-    var description by remember { mutableStateOf("") }
-    var typeObjectif by remember { mutableStateOf(TypeObjectif.COURSE) } // Valeur par défaut
-    var niveau by remember { mutableStateOf(NiveauExperience.DEBUTANT) } // Valeur par défaut
-    var estValide by remember { mutableStateOf(false) }
 
-    var isLoading by remember { mutableStateOf(true) }
+    val objectifCible by viewModel.getObjectifById(objectifId).observeAsState(initial = null)
+    val objectif = objectifCible
+    var nomObjectif by remember(objectif) { mutableStateOf(objectif?.nom ?: "") }
+    var description by remember(objectif) { mutableStateOf(objectif?.description ?: "") }
+    var dateDebut by remember(objectif) { mutableStateOf(objectif?.dateDeDebut ?: LocalDate.now()) }
+    var dateFin by remember(objectif) { mutableStateOf(objectif?.dateDeFin ?: LocalDate.now()) }
+    var typeObjectif by remember(objectif) { mutableStateOf(objectif?.type ?: TypeObjectif.COURSE) }
+    var niveau by remember(objectif) { mutableStateOf(objectif?.niveau ?: NiveauExperience.DEBUTANT) }
+    var estValide by remember(objectif) { mutableStateOf(objectif?.estValide ?: false) }
+
+
     var showDatePickerDebut by remember { mutableStateOf(false) }
     var showDatePickerFin by remember { mutableStateOf(false) }
 
     val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
-    // ---- CHARGEMENT DES DONNÉES INITIALES ----
-    LaunchedEffect(key1 = objectifId) {
-        viewModel.getObjectifById(objectifId).collect { objectifFromDb ->
-            if (objectifFromDb != null) {
-                objectifInitial = objectifFromDb
-                // Pré-remplissage de tous les champs du formulaire
-                nomObjectif = objectifFromDb.nom
-                dateDebut = objectifFromDb.dateDeDebut
-                dateFin = objectifFromDb.dateDeFin
-                description = objectifFromDb.description
-                typeObjectif = objectifFromDb.type
-                niveau = objectifFromDb.niveau
-                estValide = objectifFromDb.estValide
-                isLoading = false // Données chargées
-            }
-        }
-    }
 
     // Le composant Dialog qui flotte par-dessus l'écran
     Dialog(onDismissRequest = onDismiss) {
@@ -253,7 +236,7 @@ fun ObjectifEditDialog(
             shape = RoundedCornerShape(16.dp),
         ) {
             // Si les données ne sont pas chargées, on affiche un loader
-            if (isLoading) {
+            if (objectifCible == null) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -353,9 +336,9 @@ fun ObjectifEditDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Button(
                             onClick = {
-                                val objectifMisAJour = objectifInitial?.copy(
-                                    nom = nomObjectif,
-                                    description = description,
+                                // On utilise 'objectifCible' qui contient la version originale
+                                val objectifMisAJour = objectifCible?.copy(
+                                    nom = nomObjectif,description = description,
                                     dateDeDebut = dateDebut,
                                     dateDeFin = dateFin,
                                     type = typeObjectif,

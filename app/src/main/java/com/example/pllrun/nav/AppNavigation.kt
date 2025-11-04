@@ -41,7 +41,7 @@ fun AppNavHost(
     viewModel: InventaireViewModel
 ) {
     // État pour vérifier si l'utilisateur est inscrit
-    var isUserRegistered = false
+    var idUtilisateur by remember { mutableStateOf(0) }
 
     NavHost(
         navController = navController,
@@ -94,12 +94,15 @@ fun AppNavHost(
             )
         }
         composable(route = AppScreen.PlanningSport.name) {
-            PlanningSportScreen()
+            PlanningSportScreen(
+                viewModel = viewModel,
+                utilisateurId = 1
+            )
         }
 
     }
 }
 
 suspend fun verifConnexion(viewModel: InventaireViewModel): Boolean{
-    return viewModel.getAllUtilisateurs().first().isEmpty()
+    return viewModel.getAllUtilisateurs().isInitialized
 }

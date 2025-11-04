@@ -15,13 +15,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,15 +38,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.pllrun.InventaireViewModel
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
 
 @Composable
-fun PlanningSportScreen() {
+fun PlanningSportScreen(viewModel: InventaireViewModel,
+                        utilisateurId: Long) {
     var currentDate by remember { mutableStateOf(LocalDate.now()) }
     val currentMonth = YearMonth.from(currentDate)
+
+    // --- Observer les données du ViewModel ---
+    val objectifs by viewModel.getObjectifsForUtilisateur(utilisateurId).observeAsState(initial = emptyList())
+    val activites by viewModel.getActivitesForObjectif(utilisateurId).observeAsState(initial = emptyList())
+
+    // État pour gérer l'affichage de la popup
+    var selectedDateForPopup by remember { mutableStateOf<LocalDate?>(null) }
+
 
     Column(
         modifier = Modifier
@@ -130,74 +145,67 @@ fun CalendarGrid(
     yearMonth: YearMonth,
     modifier: Modifier = Modifier
 ) {
+    // ---- ÉTAPE 1 : Créer une liste plate de tous les jours à afficher ----
     val daysInMonth = yearMonth.lengthOfMonth()
     val firstDayOfMonth = yearMonth.atDay(1)
-    val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value % 7 // 0 = Lundi, 6 = Dimanche
+    // Lundi = 0, Mardi = 1, ..., Dimanche = 6
+    val firstDayOfWeekIndex = (firstDayOfMonth.dayOfWeek.value - 1).coerceAtLeast(0)
 
-    val weeks = mutableListOf<List<LocalDate?>>()
-    var currentWeek = mutableListOf<LocalDate?>()
+    val calendarDays = mutableListOf<LocalDate?>()
 
-    // Ajouter les jours vides du début
-    repeat(firstDayOfWeek) {
-        currentWeek.add(null)
+    // Ajouter les jours vides du début (null)
+    repeat(firstDayOfWeekIndex) {
+        calendarDays.add(null)
     }
 
     // Ajouter tous les jours du mois
     for (day in 1..daysInMonth) {
-        currentWeek.add(yearMonth.atDay(day))
-
-        // Si on arrive à dimanche ou fin du mois, on crée une nouvelle semaine
-        if (currentWeek.size == 7 || day == daysInMonth) {
-            // Compléter la dernière semaine avec des jours vides si nécessaire
-            while (currentWeek.size < 7) {
-                currentWeek.add(null)
-            }
-            weeks.add(currentWeek.toList())
-            currentWeek = mutableListOf()
-        }
+        calendarDays.add(yearMonth.atDay(day))
     }
 
+    // (Optionnel mais recommandé) Ajouter des jours vides à la fin pour compléter la grille
+    while (calendarDays.size % 7 != 0) {
+        calendarDays.add(null)
+    }
+
+    // ---- ÉTAPE 2 : Utiliser LazyVerticalGrid ----
     Column(modifier = modifier) {
-        // En-têtes des jours de la semaine
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            listOf("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim").forEach { day ->
-                Text(
-                    text = day,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Gray,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(4.dp),
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
+        // En-têtes des jours de la semaine (L, M, M, J, V, S, D)
+        DayOfWeekHeader()
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Grille des jours
-        weeks.forEach { week ->
-            CalendarWeekRow(week = week)
-            Spacer(modifier = Modifier.height(4.dp))
+        // Grille du calendrier
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(7),
+            // On peut retirer le verticalArrangement si les spacers sont gérés dans les cellules
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            items(calendarDays) { date ->
+                CalendarDayCell(
+                    date = date,
+                    // La vérification du week-end est plus simple
+                    isWeekend = date?.dayOfWeek?.value in 6..7
+                )
+            }
         }
     }
 }
 
 @Composable
-fun CalendarWeekRow(week: List<LocalDate?>) {
+fun DayOfWeekHeader() {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        week.forEachIndexed { index, date ->
-            CalendarDayCell(
-                date = date,
-                isWeekend = index >= 5, // Samedi et Dimanche
-                modifier = Modifier.weight(1f)
+        listOf("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim").forEach { day ->
+            Text(
+                text = day,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Gray,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -207,13 +215,13 @@ fun CalendarWeekRow(week: List<LocalDate?>) {
 fun CalendarDayCell(
     date: LocalDate?,
     isWeekend: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier // Le Modifier est maintenant appliqué par la LazyGrid
 ) {
     val isToday = date == LocalDate.now()
 
+    // La Box n'a plus besoin du .weight(1f) ni du .padding(4.dp) car c'est géré par la LazyGrid
     Box(
         modifier = modifier
-            .padding(4.dp)
             .height(60.dp)
             .background(
                 color = if (isToday) Color(0xFFFF751F) else Color.White,
@@ -241,7 +249,9 @@ fun CalendarDayCell(
                     color = if (isToday) Color.White else Color.Black
                 )
 
-                // Indicateur d'entraînement (à personnaliser plus tard)
+                Spacer(modifier = Modifier.height(4.dp)) // Ajoute un peu d'espace
+
+                // Indicateur d'entraînement
                 if (hasTraining(date)) {
                     Box(
                         modifier = Modifier
@@ -256,6 +266,7 @@ fun CalendarDayCell(
         }
     }
 }
+
 
 // Fonction temporaire pour indiquer les jours avec entraînement
 fun hasTraining(date: LocalDate): Boolean {

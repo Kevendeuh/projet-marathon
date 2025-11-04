@@ -1,17 +1,13 @@
 package com.example.pllrun
 
 
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
-import com.example.pllrun.Classes.Activite
-import com.example.pllrun.Classes.JourSemaine
-import com.example.pllrun.Classes.NiveauExperience
-import com.example.pllrun.Classes.Objectif
-import com.example.pllrun.Classes.ObjectifDao
-import com.example.pllrun.Classes.Sexe
-import com.example.pllrun.Classes.Utilisateur
-import com.example.pllrun.Classes.UtilisateurDao
+import androidx.room.Query
+import com.example.pllrun.Classes.*
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
@@ -31,11 +27,13 @@ import com.example.pllrun.util.TimeMapping.pickQualityDays
 import com.example.pllrun.util.TimeMapping.longNote
 import com.example.pllrun.util.TimeMapping.qualityNote
 import com.example.pllrun.util.TimeMapping.easyNote
+import java.time.LocalTime
+
 /**
  * View Model to keep a reference to the Inventory repository and an up-to-date list of all items.
  *
  */
-class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private val objectifDao: ObjectifDao) : ViewModel() {
+class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private val objectifDao: ObjectifDao,private val repository: InventaireRepository) : ViewModel() {
 
     /**
      * Inserts the new Utilisateur into database.
@@ -57,7 +55,35 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
         insertUtilisateur(newUtilisateur)
     }
 
-    fun getAllUtilisateurs(): Flow<List<Utilisateur>> = utilisateurDao.getAllUtilisateurs()
+    // Dans UtilisateurDao.kt
+    fun getUtilisateurByIdFlow(utilisateurId: Long): Flow<Utilisateur?>{
+        return utilisateurDao.getUtilisateurByIdFlow(utilisateurId)
+    }
+
+
+    fun getAllUtilisateurs(): LiveData<List<Utilisateur>> = utilisateurDao.getAllUtilisateurs()
+
+    /**
+     * Expose le temps de sommeil recommandé sous forme de LiveData pour l'UI.
+     */
+    fun getRecommendedSleepTime(utilisateurId: Long): LiveData<Long> {
+        // asLiveData transforme le Flow en LiveData, gérant tout automatiquement.
+        return repository.getRecommendedSleepTimeFlow(utilisateurId).asLiveData()
+    }
+
+    /**
+     * Expose l'heure de coucher recommandée sous forme de LiveData pour l'UI.
+     */
+    fun getRecommendedBedtime(utilisateurId: Long): LiveData<LocalTime> {
+        return repository.getRecommendedBedtimeFlow(utilisateurId).asLiveData()
+    }
+
+    /**
+     * Expose les calories recommandées sous forme de LiveData pour l'UI.
+     */
+    fun getRecommendedCalories(utilisateurId: Long): LiveData<Float> {
+        return repository.getRecommendedCaloriesFlow(utilisateurId).asLiveData()
+    }
     /**
      * Launching a new coroutine to insert an item in a non-blocking way
      */
@@ -114,13 +140,17 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
     /**
      * Récupère toutes les activités pour un objectif spécifique.
      */
-    fun getActivitesForObjectif(objectifId: Long): Flow<List<Activite>> {
+    fun getActivitesForObjectif(objectifId: Long): LiveData<List<Activite>> {
         return objectifDao.getActivitesForObjectif(objectifId)
     }
 
-    fun getActivitesForDay( date: LocalDate): Flow<List<Activite>> {
+    fun getActivitesForDay( date: LocalDate): LiveData<List<Activite>> {
         return objectifDao.getActivitesForDay(date)
 
+    }
+
+    fun getFirstUtilisateur(): LiveData<Utilisateur?> {
+        return repository.getFirstUtilisateurFlow().asLiveData()
     }
 
 
@@ -160,7 +190,7 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
         if (objectifId == null) return
 
         viewModelScope.launch {
-            val objectif = objectifDao.getObjectifById(objectifId).firstOrNull()
+            val objectif = objectifDao.getObjectifByIdOnce(objectifId)
             if (objectif == null) return@launch // Sortir si l'objectif n'existe pas
 
             // Récupère le nombre total d'activités et le nombre d'activités complétées
@@ -206,11 +236,11 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
     /**
      * Retourne tout les objectifs de l'utilisateur
      */
-    fun getObjectifsForUtilisateur(utilisateurId: Long): Flow<List<Objectif>> {
+    fun getObjectifsForUtilisateur(utilisateurId: Long): LiveData<List<Objectif>> {
         return objectifDao.getObjectifsForUtilisateur(utilisateurId)
     }
 
-    fun getObjectifById(objectifId: Long): Flow<Objectif> {
+    fun getObjectifById(objectifId: Long): LiveData<Objectif> {
         return objectifDao.getObjectifById(objectifId)
     }
     /**
@@ -357,11 +387,11 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
 /**
  * Factory class to instantiate the [ViewModel] instance.
  */
-class InventaireViewModelFactory(private val utilisateurDao: UtilisateurDao, private val objectifDao: ObjectifDao) : ViewModelProvider.Factory {
+class InventaireViewModelFactory(private val utilisateurDao: UtilisateurDao, private val objectifDao: ObjectifDao, private val InventaireRepository: InventaireRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(InventaireViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return InventaireViewModel(utilisateurDao, objectifDao) as T
+            return InventaireViewModel(utilisateurDao, objectifDao, InventaireRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

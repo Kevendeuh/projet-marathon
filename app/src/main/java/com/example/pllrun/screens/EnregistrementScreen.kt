@@ -76,9 +76,6 @@ import com.example.pllrun.Classes.Sexe
 import com.example.pllrun.InventaireViewModel
 
 import com.example.pllrun.R
-import com.example.pllrun.calculator.calculHeureCouche
-import com.example.pllrun.calculator.calculTotalCalories
-import com.example.pllrun.calculator.calculTotalMinutesSleep
 import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.os.Build

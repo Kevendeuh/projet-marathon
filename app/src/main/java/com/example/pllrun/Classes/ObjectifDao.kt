@@ -1,5 +1,6 @@
 package com.example.pllrun.Classes
 
+import androidx.lifecycle.LiveData
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -46,14 +47,25 @@ interface ObjectifDao {
     }
 
     @Query("SELECT * FROM Objectif WHERE id = :objectifId")
-    fun getObjectifById(objectifId: Long): Flow<Objectif>
+    fun getObjectifById(objectifId: Long): LiveData<Objectif>
+
+    @Query("SELECT * FROM Objectif WHERE id = :objectifId")
+    suspend fun getObjectifByIdOnce(objectifId: Long): Objectif?
+
 
     // Récupère toutes les activités pour un objectif donné
     @Query("SELECT * FROM activite WHERE objectifId = :objectifId ORDER BY date DESC")
-    fun getActivitesForObjectif(objectifId: Long): Flow<List<Activite>>
+    fun getActivitesForObjectif(objectifId: Long): LiveData<List<Activite>>
 
     @Query("SELECT * FROM Objectif WHERE utilisateurId = :utilisateurId")
-    fun getObjectifsForUtilisateur(utilisateurId: Long): Flow<List<Objectif>>
+    fun getObjectifsForUtilisateur(utilisateurId: Long): LiveData<List<Objectif>>
+
+    @Query("SELECT * FROM activite WHERE objectifId = :objectifId ORDER BY date DESC")
+    fun getActivitesForObjectifFlow(objectifId: Long): Flow<List<Activite>>
+
+    @Query("SELECT * FROM Objectif WHERE utilisateurId = :utilisateurId")
+    fun getObjectifsForUtilisateurFlow(utilisateurId: Long): Flow<List<Objectif>>
+
 
     @Query("DELETE FROM Objectif WHERE id = :objectifId")
     suspend fun deleteObjectifById(objectifId: Long)
@@ -65,7 +77,7 @@ interface ObjectifDao {
     suspend fun unparentActivitesFromObjectif(objectifId: Long)
 
     @Query("SELECT * FROM activite WHERE date = :date")
-    fun getActivitesForDay(date: LocalDate): Flow<List<Activite>>
+    fun getActivitesForDay(date: LocalDate): LiveData<List<Activite>>
 
     @Query("SELECT COUNT(*) FROM activite WHERE objectifId = :objectifId")
     suspend fun countTotalActivitesForObjectif(objectifId: Long): Int
@@ -82,5 +94,18 @@ interface ObjectifDao {
      */
     @Query("UPDATE Objectif SET taux_de_progression = :newProgress WHERE id = :objectifId")
     suspend fun updateObjectifProgress(objectifId: Long, newProgress: Double)
+
+    @Query("SELECT * FROM Objectif WHERE utilisateurId = :utilisateurId AND est_valide = 1")
+    fun getActifObjectifsByUserAsLiveData(utilisateurId: Long): LiveData<List<Objectif>>
+
+    // --- FONCTION RETOURNANT UN LIVEDATA POUR LES ACTIVITÉS ---
+    // Note : On utilise l'ID de l'utilisateur pour trouver ses activités via les objectifs.
+    @Query("""
+        SELECT a.* FROM activite AS a
+        INNER JOIN Objectif AS o ON a.objectifId = o.id
+        WHERE o.utilisateurId = :utilisateurId
+    """)
+    fun getAllActivitesByUserAsLiveData(utilisateurId: Long): LiveData<List<Activite>>
+
 
 }
