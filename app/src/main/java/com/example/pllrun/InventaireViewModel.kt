@@ -17,6 +17,10 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.DayOfWeek
+import java.time.Duration
+import com.example.pllrun.util.toDayOfWeek
+
 
 /**
  * View Model to keep a reference to the Inventory repository and an up-to-date list of all items.
@@ -53,9 +57,14 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
         }
     }
 
-    fun addNewObjectif(objectif: Objectif) {
-        viewModelScope.launch {
-            objectifDao.insertObjectif(objectif)
+    fun addNewObjectif(
+        objectif: Objectif,
+        generateActivities: Boolean = false
+    ) {
+        if (generateActivities) {
+            addNewObjectifAndGenerateActivities(objectif)
+        } else {
+            viewModelScope.launch { objectifDao.insertObjectif(objectif) }
         }
     }
 
@@ -213,6 +222,70 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
             joursEntrainementDisponibles = joursEntrainementDisponibles,
         )
     }
+    fun addNewObjectifAndGenerateActivities(obj: Objectif) {
+        viewModelScope.launch {
+            // 1) Insère l’objectif et récupère son id
+            val objectifId = objectifDao.insertObjectif(obj)
+
+            // 2) Récupère l’utilisateur pour connaître ses jours d’entraînement
+            val user = utilisateurDao.getUtilisateurNow(obj.utilisateurId)
+                ?: return@launch
+
+            val trainingDays: Set<DayOfWeek> =
+                if (user.joursEntrainementDisponibles.isNotEmpty())
+                    user.joursEntrainementDisponibles.map { it.toDayOfWeek() }.toSet()
+                else emptySet()
+
+            // 3) Liste des dates entre début et fin sur les jours choisis
+            val dates = enumerateDates(obj.dateDeDebut, obj.dateDeFin, trainingDays)
+
+            // 4) Crée et insère les Activite “placeholder”
+            for (date in dates) {
+                val (nom, desc) = defaultLabelFor(date.dayOfWeek, obj.type)
+                val activite = Activite(
+                    id = 0,
+                    objectifId = objectifId,
+                    nom = nom,
+                    description = desc,
+                    date = date,
+                    distanceEffectuee = 0.0,
+                    tempsEffectue = Duration.ZERO,
+                    typeActivite = obj.type,
+                    estComplete = false,
+                    niveau = obj.niveau
+                )
+                objectifDao.insertActivite(activite)
+            }
+
+            recalculateObjectifProgress(objectifId)
+        }
+    }
+
+    // Helpers privés à coller dans le ViewModel
+    private fun enumerateDates(
+        start: LocalDate,
+        end: LocalDate,
+        allowed: Set<DayOfWeek>
+    ): List<LocalDate> {
+        if (start.isAfter(end) || allowed.isEmpty()) return emptyList()
+        val out = mutableListOf<LocalDate>()
+        var d = start
+        while (!d.isAfter(end)) {
+            if (d.dayOfWeek in allowed) out += d
+            d = d.plusDays(1)
+        }
+        return out
+    }
+
+    private fun defaultLabelFor(
+        dow: DayOfWeek,
+        type: com.example.pllrun.Classes.TypeObjectif
+    ): Pair<String, String> = when (dow) {
+        DayOfWeek.SUNDAY   -> "Sortie longue"  to "Endurance Z2 ; adaptée à l’objectif ${type.libelle}"
+        DayOfWeek.TUESDAY  -> "Séance qualité" to "Tempo/Intervalles léger selon niveau"
+        else               -> "Footing"        to "Z1–Z2 ; mobilité légère"
+    }
+
 
 
 

@@ -401,8 +401,8 @@ fun ObjectifScreen(
                 if(viewModel != null){
                     val nouvelObjectif = Objectif(
                         nom = nomObjectif,
-                        dateDeDebut = LocalDate.now(),
-                        dateDeFin = LocalDate.now(),
+                        dateDeDebut = dateDebut,
+                        dateDeFin = dateFin,
                         niveau = niveau,
                         type = type,
                         typeDecoupage = decoupage,
@@ -411,7 +411,8 @@ fun ObjectifScreen(
                         utilisateurId = utilisateurId,
                         estValide = false
                     )
-                    viewModel.addNewObjectif(objectif = nouvelObjectif)
+                    viewModel.addNewObjectif(objectif= nouvelObjectif, generateActivities = true)
+                    onSaveAndNext()
 
                 }
 
