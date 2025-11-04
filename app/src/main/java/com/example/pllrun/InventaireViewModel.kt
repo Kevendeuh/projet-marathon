@@ -173,15 +173,15 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
             objectifDao.updateActivite(activite)
         }
     }
-    fun deleteObjectifAndActivites(objectif: Objectif) {
+    fun deleteObjectifAndActivites(objectifId: Long) {
         viewModelScope.launch {
-            objectifDao.deleteObjectifAndItsActivites(objectif.id)
+            objectifDao.deleteObjectifAndItsActivites(objectifId)
         }
     }
 
-    fun deleteObjectifButKeepActivites(objectif: Objectif) {
+    fun deleteObjectifById(objectifId: Long) {
         viewModelScope.launch {
-            objectifDao.unparentActivitesAndDeleteObjectif(objectif.id)
+            objectifDao.unparentActivitesAndDeleteObjectif(objectifId)
         }
     }
 

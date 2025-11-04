@@ -35,8 +35,9 @@ interface ObjectifDao {
 
     @Transaction
     suspend fun deleteObjectifAndItsActivites(objectifId: Long) {
-        deleteObjectifById(objectifId) // Supprime l'objectif
         deleteActivitesByObjectifId(objectifId) // Supprime les activités liées
+        deleteObjectifById(objectifId) // Supprime l'objectif
+
     }
 
     // 2. Fonction pour dissocier les activités puis supprimer l'objectif

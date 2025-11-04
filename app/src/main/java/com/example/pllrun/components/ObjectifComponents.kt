@@ -20,6 +20,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -326,41 +328,94 @@ fun ObjectifEditDialog(
                     Spacer(modifier = Modifier.height(24.dp))
 
                     // ---- BOUTONS D'ACTION ----
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(8.dp) // Espace entre les rangées de boutons
                     ) {
-                        TextButton(onClick = onDismiss) {
-                            Text("Annuler")
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
+                        var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+
+                        // --- Bouton de suppression rouge et séparé ---
                         Button(
-                            onClick = {
-                                // On utilise 'objectifCible' qui contient la version originale
-                                val objectifMisAJour = objectifCible?.copy(
-                                    nom = nomObjectif,description = description,
-                                    dateDeDebut = dateDebut,
-                                    dateDeFin = dateFin,
-                                    type = typeObjectif,
-                                    niveau = niveau,
-                                    estValide = estValide
-                                )
-                                if(estValide){
-                                    objectifMisAJour?.tauxDeProgression = 100.0
-                                }
-                                if (objectifMisAJour != null) {
-                                    viewModel.updateObjectif(objectifMisAJour)
-                                }
-                                onDismiss() // Ferme le dialogue après la sauvegarde
-                            }
+                            onClick = { showDeleteConfirmDialog = true },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error // Couleur de fond rouge
+                            ),
+                            modifier = Modifier.fillMaxWidth() // Le bouton prend toute la largeur
                         ) {
-                            Text("Enregistrer")
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Supprimer l'objectif",
+                                    tint = MaterialTheme.colorScheme.onError // Couleur de l'icône (blanc)
+                                )
+                                Text("Supprimer l'objectif")
+                            }
+                        }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+
+
+                                TextButton(onClick = onDismiss) {
+                                    Text("Annuler")
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Button(
+                                    onClick = {
+                                        // On utilise 'objectifCible' qui contient la version originale
+                                        val objectifMisAJour = objectifCible?.copy(
+                                            nom = nomObjectif, description = description,
+                                            dateDeDebut = dateDebut,
+                                            dateDeFin = dateFin,
+                                            type = typeObjectif,
+                                            niveau = niveau,
+                                            estValide = estValide
+                                        )
+                                        if (estValide) {
+                                            objectifMisAJour?.tauxDeProgression = 100.0
+                                        }
+                                        if (objectifMisAJour != null) {
+                                            viewModel.updateObjectif(objectifMisAJour)
+                                        }
+                                        onDismiss() // Ferme le dialogue après la sauvegarde
+                                    }
+                                ) {
+                                    Text("Enregistrer")
+                                }
+
+                                //popup de suppression
+                                if (showDeleteConfirmDialog) {
+                                    DeleteConfirmationDialog(
+                                        onDismiss = { showDeleteConfirmDialog = false },
+                                        onDeleteObjectifOnly = {
+                                            viewModel.deleteObjectifById(objectifId)
+                                            showDeleteConfirmDialog =
+                                                false // Ferme la popup de suppression
+                                            onDismiss() // Ferme le dialogue d'édition
+                                        },
+                                        onDeleteWithActivities = {
+                                            viewModel.deleteObjectifAndActivites(objectifId)
+                                            showDeleteConfirmDialog =
+                                                false // Ferme la popup de suppression
+                                            onDismiss() // Ferme le dialogue d'édition
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
-                }
             }
         }
     }
+
+
 
     // Affiche les DatePicker par-dessus le dialogue si nécessaire
     if (showDatePickerDebut) {
@@ -519,6 +574,68 @@ private fun ValidationField(
             onCheckedChange = onStateChange
         )
     }
+}
+
+/**
+ * Un dialogue pour confirmer la suppression d'un objectif, avec des options granulaires.
+ */
+@Composable
+private fun DeleteConfirmationDialog(
+    onDismiss: () -> Unit,
+    onDeleteObjectifOnly: () -> Unit,
+    onDeleteWithActivities: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        // Icône de la popup
+        icon = { Icon(imageVector = Icons.Default.Warning, contentDescription = "Avertissement") },
+        // Titre de la popup
+        title = { Text(text = "Supprimer l'objectif ?") },
+        // Message explicatif
+        text = { Text("Cette action est irréversible. Voulez-vous également supprimer toutes les activités liées à cet objectif ?") },
+        // Boutons d'action
+        confirmButton = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // 1. Bouton "Supprimer avec activités"
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onDeleteWithActivities,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    )
+                ) {
+                    Text("Supprimer avec activités")
+                }
+
+                // 2. Bouton "Supprimer uniquement"
+
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onDeleteObjectifOnly,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onErrorContainer
+
+                    )
+                ) {
+                    Text("Supprimer seul")
+                }
+
+                // 3. Bouton "Annuler"
+
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onDismiss,
+                ) {
+                    Text("Annuler")
+                }
+            }
+        },
+
+    )
 }
 
 
