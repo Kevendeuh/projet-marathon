@@ -51,6 +51,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.pllrun.Classes.Activite
 import com.example.pllrun.Classes.Objectif
 import com.example.pllrun.InventaireViewModel
+import com.example.pllrun.components.ActivityRow
 import com.example.pllrun.components.ObjectifCard
 import com.example.pllrun.components.ObjectifEditDialog
 import java.time.LocalDate
@@ -405,10 +406,10 @@ fun DayDetailsPopup(
                             Text("Activités prévues", style = MaterialTheme.typography.titleMedium)
                         }
                         lazyListItems(activitesDuJour, key = { it.id }) { activite ->
-                            // On réutilise ActivityRow de HubScreen.kt
+                            // On réutilise ActivityRow de Activity.kt
                             ActivityRow(
                                 act = activite,
-                                onClick = { onActiviteClick(activite.id) }
+                                onEdit = { activite }
                             )
                         }
                     }

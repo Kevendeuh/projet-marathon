@@ -14,6 +14,7 @@ import androidx.navigation.compose.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.navigation.navArgument
 import kotlinx.coroutines.delay
@@ -40,8 +41,13 @@ fun AppNavHost(
     navController: NavHostController,
     viewModel: InventaireViewModel
 ) {
+
+    // --- DÉFINITION DES ROUTES AVEC ARGUMENTS ---
+    // On définit les routes ici pour la clarté et pour éviter les "chaînes magiques".
+    val routeEnregistrement = "${AppScreen.Enregistrement.name}?utilisateurId={utilisateurId}"
+    val argumentUtilisateurId = "utilisateurId"
+
     // État pour vérifier si l'utilisateur est inscrit
-    var idUtilisateur by remember { mutableStateOf(0) }
 
     NavHost(
         navController = navController,
@@ -53,13 +59,24 @@ fun AppNavHost(
 
 
         }
+        // --- Écran d'Enregistrement
+        composable(
+            route = routeEnregistrement, // On utilise notre variable de route
+            // On déclare que 'utilisateurId' est un argument optionnel (nullable = true)
+            arguments = listOf(navArgument(argumentUtilisateurId) {
+                type = NavType.StringType
+                nullable = true
+            })
+        ) { backStackEntry ->
+            // On récupère la valeur de l'argument
+            val utilisateurId = backStackEntry.arguments?.getString(argumentUtilisateurId)
 
-        composable(route = AppScreen.Enregistrement.name) {
             EnregistrementScreen(
-                onNext = {
-                    navController.navigate(AppScreen.Objectif.name)
-                },
-                viewModel = viewModel
+                viewModel = viewModel,
+                // On convertit l'ID (String) en Long, ou on passe null si absent
+                utilisateurId = utilisateurId?.toLongOrNull(),
+                onNext = { navController.popBackStack() },
+
             )
         }
         composable(route = AppScreen.Objectif.name) {
@@ -79,9 +96,16 @@ fun AppNavHost(
             )
         }
         composable(route = AppScreen.Hub.name) {
+
+            val utilisateurId by viewModel.getFirstUtilisateur().observeAsState()
             HubScreen(
                 onEditProfile = {
-                    navController.navigate(AppScreen.Enregistrement.name)
+                    // On construit la route de destination en remplaçant l'argument
+                    val destination = routeEnregistrement.replace(
+                        "{$argumentUtilisateurId}",
+                        utilisateurId?.id.toString()
+                    )
+                    navController.navigate(destination)
                 },
                 onPlanningSport = {
                     navController.navigate(AppScreen.PlanningSport.name)

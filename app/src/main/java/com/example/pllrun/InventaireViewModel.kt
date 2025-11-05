@@ -15,9 +15,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.DayOfWeek
 import java.time.Duration
-import com.example.pllrun.util.toDayOfWeek
 import java.time.temporal.WeekFields
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -28,7 +28,7 @@ import com.example.pllrun.util.TimeMapping.pickQualityDays
 import com.example.pllrun.util.TimeMapping.longNote
 import com.example.pllrun.util.TimeMapping.qualityNote
 import com.example.pllrun.util.TimeMapping.easyNote
-import java.time.LocalTime
+import com.example.pllrun.util.toDayOfWeek
 
 /**
  * View Model to keep a reference to the Inventory repository and an up-to-date list of all items.
@@ -59,6 +59,10 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
     // Dans UtilisateurDao.kt
     fun getUtilisateurByIdFlow(utilisateurId: Long): Flow<Utilisateur?>{
         return utilisateurDao.getUtilisateurByIdFlow(utilisateurId)
+    }
+
+    fun getUtilisateurById(utilisateurId: Long): LiveData<Utilisateur?>{
+        return utilisateurDao.getUtilisateurById(utilisateurId)
     }
 
 

@@ -18,12 +18,11 @@ import com.example.pllrun.Classes.Activite
 fun ActivityRow(
     act: Activite,
     onEdit: (Activite) -> Unit,          // ← bouton crayon
-    onClick: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = { onEdit(act) }),
         shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -67,13 +66,12 @@ fun ActivityRow(
                 )
             }
 
-            // Bouton crayon (édition)
-            IconButton(onClick = { onEdit(act) }) {
+            // Icon crayon
                 Icon(
                     imageVector = Icons.Filled.Edit,
                     contentDescription = "Modifier l’activité"
                 )
-            }
+
         }
     }
 }
