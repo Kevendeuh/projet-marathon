@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,4 +53,29 @@ fun DatePickerComponent(
         // Le composant visuel du calendrier
         DatePicker(state = datePickerState)
     }
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TimePickerDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (LocalTime) -> Unit
+) {
+    val timeState = rememberTimePickerState(is24Hour = true)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Sélectionner l'heure") },
+        text = { TimePicker(state = timeState) },
+        confirmButton = {
+            Button(onClick = {
+                onConfirm(java.time.LocalTime.of(timeState.hour, timeState.minute))            }) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Annuler")
+            }
+        }
+    )
 }

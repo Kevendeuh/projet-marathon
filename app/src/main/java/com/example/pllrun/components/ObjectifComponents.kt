@@ -464,7 +464,7 @@ private fun EditField(
  * Idéal pour les sélecteurs de date/heure.
  */
 @Composable
-private fun ReadOnlyField(
+fun ReadOnlyField(
     modifier: Modifier = Modifier,
     label: String,
     value: String,
@@ -537,7 +537,7 @@ fun ExposedDropdownMenuComponent(
  * Affiche une icône, un texte, et un interrupteur (Switch).
  */
 @Composable
-private fun ValidationField(
+fun ValidationField(
     isValid: Boolean,
     onStateChange: (Boolean) -> Unit
 ) {

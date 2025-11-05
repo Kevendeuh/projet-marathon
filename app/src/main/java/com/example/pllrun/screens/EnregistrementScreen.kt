@@ -211,11 +211,17 @@ fun EnregistrementScreen(
                 dateDeNaissance = user.dateDeNaissance ?: LocalDate.now()
                 niveau = user.niveauExperience
                 joursSelectionnes = user.joursEntrainementDisponibles.toSet()
-                vma = user.vma.toString()
-                fcm = user.fcm.toString()
-                fcr = user.fcr.toString()
+                vma = user.vma?.let { v -> if (v > 0.0) v.toString() else "" } ?: ""
+                fcm = user.fcm?.let { v -> if (v > 0.0) v.toString() else "" } ?: ""
+                fcr = user.fcr?.let { v -> if (v > 0.0) v.toString() else "" } ?: ""
                 prenom = user.prenom
-                imageUri = user.imageUri?.toUri()
+                if (user.imageUri != null) {
+                    imageUri = user.imageUri!!.toUri()
+                    // On force la mise à jour de l'image en changeant sa "version"
+                    imageVersion = System.currentTimeMillis()
+                } else {
+                    imageUri = null
+                }
                 sexe = user.sexe
                 poidsCible = user.poidsCible.toString()
             }
@@ -782,7 +788,28 @@ fun EnregistrementScreen(
         Button(
             onClick = {
                 if (isButtonEnabled) {
-                    saveUser()
+                    if(isEditMode && viewModel != null){
+                        viewModel.updateUtilisateur(Utilisateur(
+                            id = utilisateurId,
+                            nom = nom,
+                            prenom = prenom,
+                            imageUri = imageUri?.toString(),
+                            dateDeNaissance = dateDeNaissance,
+                            sexe = sexe,
+                            poids = poids.toDouble(),
+                            poidsCible = poidsCible.toDouble(),
+                            taille = taille.toInt(),
+                            vma = vma.toDoubleOrNull(),
+                            fcm = fcm.toIntOrNull(),
+                            fcr = fcr.toIntOrNull(),
+                            niveauExperience = niveau,
+                            joursEntrainementDisponibles = joursSelectionnes.toList() // On convertit le Set en List
+
+
+                        ))
+                    }else {
+                        saveUser()
+                    }
                     onNext()
                 } else {
                     Toast.makeText(context, "Veuillez remplir tous les champs obligatoires.", Toast.LENGTH_SHORT).show()
@@ -796,7 +823,7 @@ fun EnregistrementScreen(
             shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF751F), disabledContainerColor = Color.LightGray)
         ) {
-            Text("Suivant", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text("Sauvegarder", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
 
         // Bouton suppression utilisateur
