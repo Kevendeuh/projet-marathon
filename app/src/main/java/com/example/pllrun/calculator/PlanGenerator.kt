@@ -4,6 +4,7 @@ import com.example.pllrun.Classes.JourSemaine
 import com.example.pllrun.Classes.NiveauExperience
 import com.example.pllrun.Classes.Sexe
 import com.example.pllrun.Classes.Utilisateur
+import com.example.pllrun.util.toDayOfWeek
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.Period
@@ -307,12 +308,4 @@ class SleepPlanner {
  * ============================================================
  */
 
-private fun JourSemaine.toDayOfWeek(): DayOfWeek = when (this) {
-    JourSemaine.LUNDI     -> DayOfWeek.MONDAY
-    JourSemaine.MARDI     -> DayOfWeek.TUESDAY
-    JourSemaine.MERCREDI  -> DayOfWeek.WEDNESDAY
-    JourSemaine.JEUDI     -> DayOfWeek.THURSDAY
-    JourSemaine.VENDREDI  -> DayOfWeek.FRIDAY
-    JourSemaine.SAMEDI    -> DayOfWeek.SATURDAY
-    JourSemaine.DIMANCHE  -> DayOfWeek.SUNDAY
-}
+

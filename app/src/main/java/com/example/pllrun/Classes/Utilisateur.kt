@@ -3,6 +3,7 @@ package com.example.pllrun.Classes
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import java.time.DayOfWeek
 import java.time.LocalDate
 
 /**
@@ -88,7 +89,8 @@ enum class NiveauExperience(val libelle: String, val facteur: Float) {
  * Énumération pour les jours de la semaine.
  */
 enum class JourSemaine {
-    LUNDI, MARDI, MERCREDI, JEUDI, VENDREDI, SAMEDI, DIMANCHE
+    LUNDI, MARDI, MERCREDI, JEUDI, VENDREDI, SAMEDI, DIMANCHE;
+
 }
 
 // nom: String = "", prenom: String = "", dateDeNaissance: LocalDate? = null, sexe: Sexe = Sexe.NON_SPECIFIE, poids: Double = 0.0, taille: Int = 0, vma: Double? = 0.0, fcm: Int? = 0,fcr: Int? = 0,niveauExperience: NiveauExperience = NiveauExperience.DEBUTANT,joursEntrainementDisponibles: List<JourSemaine> = emptyList(), objectifs: MutableList<Objectif> = mutableListOf(),

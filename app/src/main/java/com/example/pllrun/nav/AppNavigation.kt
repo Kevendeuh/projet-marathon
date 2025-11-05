@@ -14,6 +14,7 @@ import androidx.navigation.compose.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.navigation.navArgument
 import kotlinx.coroutines.delay
@@ -95,9 +96,16 @@ fun AppNavHost(
             )
         }
         composable(route = AppScreen.Hub.name) {
+
+            val utilisateurId by viewModel.getFirstUtilisateur().observeAsState()
             HubScreen(
                 onEditProfile = {
-                    navController.navigate(AppScreen.Enregistrement.name)
+                    // On construit la route de destination en remplaçant l'argument
+                    val destination = routeEnregistrement.replace(
+                        "{$argumentUtilisateurId}",
+                        utilisateurId?.id.toString()
+                    )
+                    navController.navigate(destination)
                 },
                 onPlanningSport = {
                     navController.navigate(AppScreen.PlanningSport.name)

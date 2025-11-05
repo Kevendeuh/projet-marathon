@@ -56,7 +56,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.isEmpty
+import com.example.pllrun.Classes.Activite
 import com.example.pllrun.calculator.ApportsNutritionnels
+import com.example.pllrun.components.ActivityDialog
+import com.example.pllrun.components.ActivityRow
 import java.time.LocalDate
 
 
@@ -67,9 +70,9 @@ fun HubScreen(
     onPlanningSport: () -> Unit,
     onAddGoal: () -> Unit,
 ) {
-    // ... (Toutes les déclarations de variables restent les mêmes)
-    var showEditDialog by remember { mutableStateOf(false) }
-    var selectedObjectifId by remember { mutableStateOf<Long?>(null) }
+    // --- GESTION DES ÉTATS DE L'UI POUR LES DIALOGUES ---
+    var objectifToEditId by remember { mutableStateOf<Long?>(null) }
+    var activiteToEdit by remember { mutableStateOf<Activite?>(null) } // État pour le dialogue d'activité
 
     val utilisateurPrincipal by viewModel.getFirstUtilisateur().observeAsState(initial = null)
     val activitesDuJour by viewModel.getActivitesForDay(LocalDate.now()).observeAsState(initial = emptyList())
@@ -155,8 +158,7 @@ fun HubScreen(
                                 viewModel = viewModel,
                                 utilisateurId = user.id,
                                 onObjectifClick = { objectifId ->
-                                    selectedObjectifId = objectifId
-                                    showEditDialog = true
+                                    objectifToEditId = objectifId
                                 },
                             )
                         }
@@ -176,7 +178,12 @@ fun HubScreen(
                         } else {
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 activitesDuJour.sortedBy { it.heureDeDebut }.forEach { act ->
-                                    ActivityRow(act = act, onClick = onPlanningSport)
+                                    ActivityRow(
+                                        act = act,
+                                        onEdit = { activiteSelectionnee ->
+                                            activiteToEdit = activiteSelectionnee
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -288,63 +295,33 @@ fun HubScreen(
     }
 
 
-    // ---- AFFICHAGE CONDITIONNEL DU DIALOGUE ----
-    selectedObjectifId?.let { id ->
-        if (showEditDialog) {
-            ObjectifEditDialog(
-                viewModel = viewModel,
-                objectifId = id,
-                onDismiss = {
-                    showEditDialog = false
-                    selectedObjectifId = null
-                }
-            )
-        }
+    // --- AFFICHAGE CONDITIONNEL DES DIALOGUES ---
+
+    // 1. Dialogue d'édition d'objectif
+    objectifToEditId?.let { id ->
+        ObjectifEditDialog(
+            viewModel = viewModel,
+            objectifId = id,
+            onDismiss = { objectifToEditId = null }
+        )
     }
-}
 
-@Composable
-fun ActivityRow(
-    act: com.example.pllrun.Classes.Activite,
-    onClick: () -> Unit = {}
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFDFDFD)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = act.nom,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.Black
-            )
-
-            // Ligne d’infos : heure • type • niveau • statut
-            val typeLibelle = try { act.typeActivite.libelle } catch (_: Throwable) { act.typeActivite.name }
-            val niveauLibelle = try { act.niveau.libelle } catch (_: Throwable) { act.niveau.name }
-            Text(
-                text = "${act.heureDeDebut} • $typeLibelle • $niveauLibelle" +
-                        if (act.estComplete) " • Terminé" else " • À faire",
-                fontSize = 13.sp,
-                color = Color(0xFF666666)
-            )
-
-            if (act.description.isNotBlank()) {
-                Text(
-                    text = act.description,
-                    fontSize = 13.sp,
-                    color = Color(0xFF7A7A7A)
-                )
+    // 2. Dialogue d'édition d'activité
+    activiteToEdit?.let { activite ->
+        ActivityDialog(
+            act = activite,
+            onDismiss = {
+                activiteToEdit = null // Ferme le dialogue
+            },
+            onSave = { activiteMiseAJour ->
+                viewModel.updateActivite(activiteMiseAJour)
+                activiteToEdit = null // Ferme le dialogue
+            },
+            onDelete = { activiteASupprimer ->
+                viewModel.deleteActivite(activiteASupprimer)
+                activiteToEdit = null // Ferme le dialogue
             }
-        }
+        )
     }
 }
 
@@ -419,50 +396,7 @@ fun TaskCard(
             }
         }
     }
-    @Composable
-    fun ActivityRow(
-        act: com.example.pllrun.Classes.Activite,
-        onClick: () -> Unit = {}
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick),
-            shape = RoundedCornerShape(10.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFFDFDFD)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = act.nom,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.Black
-                )
-
-                // Ligne d’infos : heure • type • niveau • statut
-                val typeLibelle = try { act.typeActivite.libelle } catch (_: Throwable) { act.typeActivite.name }
-                val niveauLibelle = try { act.niveau.libelle } catch (_: Throwable) { act.niveau.name }
-                Text(
-                    text = "${act.heureDeDebut} • $typeLibelle • $niveauLibelle" +
-                            if (act.estComplete) " • Terminé" else " • À faire",
-                    fontSize = 13.sp,
-                    color = Color(0xFF666666)
-                )
-
-                if (act.description.isNotBlank()) {
-                    Text(
-                        text = act.description,
-                        fontSize = 13.sp,
-                        color = Color(0xFF7A7A7A)
-                    )
-                }
-            }
-        }
-    }
+    
 
 }
 
