@@ -16,7 +16,7 @@ data class ApportsNutritionnels(
 )
 object CaloriesGenerator {
 
-    fun calculateTotalCalories(
+    fun calculateTotalNutriments(
         utilisateur: Utilisateur?,
         activitesDuJour: List<Activite>
     ): ApportsNutritionnels {

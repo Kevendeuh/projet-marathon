@@ -8,6 +8,7 @@ import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import androidx.room.Query
 import com.example.pllrun.Classes.*
+import com.example.pllrun.calculator.ApportsNutritionnels
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
@@ -79,10 +80,10 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
     }
 
     /**
-     * Expose les calories recommandées sous forme de LiveData pour l'UI.
+     * Expose les Nutriments recommandées sous forme de LiveData pour l'UI.
      */
-    fun getRecommendedCalories(utilisateurId: Long): LiveData<Float> {
-        return repository.getRecommendedCaloriesFlow(utilisateurId).asLiveData()
+    fun getRecommendedNutriments(utilisateurId: Long): LiveData<ApportsNutritionnels> {
+        return repository.getRecommendedNutrimentsFlow(utilisateurId).asLiveData()
     }
     /**
      * Launching a new coroutine to insert an item in a non-blocking way

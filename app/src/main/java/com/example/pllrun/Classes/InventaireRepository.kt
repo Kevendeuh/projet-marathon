@@ -1,5 +1,6 @@
 package com.example.pllrun.Classes
 
+import com.example.pllrun.calculator.ApportsNutritionnels
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import java.time.LocalDate
@@ -69,7 +70,7 @@ class InventaireRepository(
     }
 
     // --- CALORIES ---
-    fun getRecommendedCaloriesFlow(utilisateurId: Long): Flow<Float> {
+    fun getRecommendedNutrimentsFlow(utilisateurId: Long): Flow<ApportsNutritionnels> {
         val utilisateurFlow = utilisateurDao.getUtilisateurByIdFlow(utilisateurId)
         val objectifsFlow = objectifDao.getObjectifsForUtilisateurFlow(utilisateurId)
 
@@ -84,7 +85,7 @@ class InventaireRepository(
 
         return combine(utilisateurFlow, activitesFlow) { utilisateur, activites ->
             val activitesDuJour = activites.filter { it.date == LocalDate.now() }
-            CaloriesGenerator.calculateTotalCalories(utilisateur, activitesDuJour)
+            CaloriesGenerator.calculateTotalNutriments(utilisateur, activitesDuJour)
         }
     }
 

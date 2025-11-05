@@ -56,6 +56,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.isEmpty
+import com.example.pllrun.calculator.ApportsNutritionnels
 import java.time.LocalDate
 
 
@@ -76,21 +77,13 @@ fun HubScreen(
 
     val sleepMinutes by viewModel.getRecommendedSleepTime(utilisateurPrincipal?.id ?: -1).observeAsState(0L)
     val bedtime by viewModel.getRecommendedBedtime(utilisateurPrincipal?.id ?: -1).observeAsState(LocalTime.of(22, 0))
-    val calories by viewModel.getRecommendedCalories(utilisateurPrincipal?.id ?: -1).observeAsState(0F)
+    val nutriments by viewModel.getRecommendedNutriments(utilisateurPrincipal?.id ?: -1).observeAsState(ApportsNutritionnels(0F,0F,0F,0F))
 
-    // --- 2. CALCUL ET FORMATAGE DES DONNÉES (MAINTENANT DANS UN BLOC NON-COMPOSABLE) ---
-
-    // On utilise `remember` pour ne recalculer que lorsque les valeurs observées changent.
-    val (tempsSommeilSuggere, heureCoucheSuggeree, totalCaloriesSuggeree) = remember(utilisateurPrincipal, sleepMinutes, bedtime, calories) {
-        if (utilisateurPrincipal != null) {
-            val formattedSleepTime = if (sleepMinutes > 0) "${sleepMinutes / 60}h ${sleepMinutes % 60}min" else "N/A"
-            val formattedBedtime = bedtime.format(DateTimeFormatter.ofPattern("HH:mm"))
-            val formattedCalories = if (calories > 0) calories.toInt().toString() else "N/A"
-            Triple(formattedSleepTime, formattedBedtime, formattedCalories)
-        } else {
-            // Valeurs par défaut si l'utilisateur est null.
-            Triple("N/A", "N/A", "N/A")
-        }
+    // --- 2. FORMATAGE DES DONNÉES ---
+    val (tempsSommeilSuggere, heureCoucheSuggeree) = remember(sleepMinutes, bedtime) {
+        val formattedSleepTime = if (sleepMinutes > 0) "${sleepMinutes / 60}h ${sleepMinutes % 60}min" else "N/A"
+        val formattedBedtime = bedtime.format(DateTimeFormatter.ofPattern("HH:mm"))
+        Pair(formattedSleepTime, formattedBedtime)
     }
 
 
@@ -207,17 +200,19 @@ fun HubScreen(
                             .padding(bottom = 32.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        var descriptionSommeil = "estimation impossible veuillez renseigner utilisateur"
+                        var descriptionSommeil =
+                            "estimation impossible veuillez renseigner utilisateur"
                         if (tempsSommeilSuggere != null) {
                             descriptionSommeil =
-                                " temps de sommeil suggéré:$tempsSommeilSuggere minutes \n heure de couche suggérée:$heureCoucheSuggeree"
+                                " temps de sommeil suggéré:$tempsSommeilSuggere \n heure de couche suggérée:$heureCoucheSuggeree"
                         }
                         TaskCard(
                             title = "Sommeil",
                             // AJOUT : Passage de l'icône
                             icon = {
                                 Icon(
-                                    imageVector = Icons.Default.Bedtime,                                    contentDescription = "Icône de sommeil",
+                                    imageVector = Icons.Default.Bedtime,
+                                    contentDescription = "Icône de sommeil",
                                     tint = Color(0xFFFF751F) // Couleur orange
                                 )
                             },
@@ -232,10 +227,6 @@ fun HubScreen(
                             )
                         }
 
-                        var descriptionCalories = "estimation impossible veuillez renseigner utilisateur"
-                        if (totalCaloriesSuggeree != null) {
-                            descriptionCalories = " Calories suggérées:$totalCaloriesSuggeree"
-                        }
                         TaskCard(
                             title = "À Manger",
                             // AJOUT : Passage de l'icône
@@ -249,11 +240,23 @@ fun HubScreen(
                             onThreeDotsClick = { /* TODO: Naviguer vers écran nutrition */ },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text(
-                                text = descriptionCalories,
-                                fontSize = 14.sp,
-                                color = Color.Gray,
-                            )
+                            // On affiche les données formatées de l'objet nutriments
+                            if (utilisateurPrincipal != null && nutriments.calories > 0) {
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(
+                                        "${nutriments.calories.toInt()} kcal",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        "P: ${nutriments.proteines.toInt()}g | G: ${nutriments.glucides.toInt()}g | L: ${nutriments.lipides.toInt()}g",
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                            } else {
+                                Text("N/A", fontSize = 14.sp, color = Color.Gray)
+                            }
                         }
                     }
                 }
