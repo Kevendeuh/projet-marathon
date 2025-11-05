@@ -123,7 +123,11 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
 
     fun deleteActivite(activite: Activite) {
         viewModelScope.launch {
+            if (activite.objectifId != null) {
+                recalculateObjectifProgress(activite.objectifId)
+            }
             objectifDao.deleteActivite(activite)
+
         }
     }
 
@@ -176,11 +180,16 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
     fun updateActivite(activite: Activite) {
         viewModelScope.launch {
             objectifDao.updateActivite(activite)
+            //    on lance le recalcul de la progression de cet objectif.
+            if (activite.objectifId != null) {
+                recalculateObjectifProgress(activite.objectifId)
+            }
         }
     }
     fun deleteObjectifAndActivites(objectifId: Long) {
         viewModelScope.launch {
             objectifDao.deleteObjectifAndItsActivites(objectifId)
+
         }
     }
 
@@ -285,6 +294,7 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
             nom = nom,
             prenom = prenom,
             dateDeNaissance = dateDeNaissance,
+            imageUri = imageUri,
             sexe = sexe,
             poids = poids,
             poidsCible = poidsCible,

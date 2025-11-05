@@ -65,6 +65,7 @@ dependencies {
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.core.i18n)
     implementation(libs.androidx.compose.runtime.livedata)
+    implementation(libs.places)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

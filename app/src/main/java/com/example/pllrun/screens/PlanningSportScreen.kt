@@ -51,6 +51,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.pllrun.Classes.Activite
 import com.example.pllrun.Classes.Objectif
 import com.example.pllrun.InventaireViewModel
+import com.example.pllrun.components.ActivityDialog
 import com.example.pllrun.components.ActivityRow
 import com.example.pllrun.components.ObjectifCard
 import com.example.pllrun.components.ObjectifEditDialog
@@ -74,6 +75,7 @@ fun PlanningSportScreen(viewModel: InventaireViewModel,
     // --- GESTION DES ÉTATS POUR LES POPUPS ---
     var selectedDateForPopup by remember { mutableStateOf<LocalDate?>(null) }
     var objectifToEditId by remember { mutableStateOf<Long?>(null) }
+    var activiteToEdit by remember { mutableStateOf<Activite?>(null) } // État pour le dialogue d'activité
 
 
     Column(
@@ -118,20 +120,40 @@ fun PlanningSportScreen(viewModel: InventaireViewModel,
             activites = activites,
             onDismiss = { selectedDateForPopup = null },
             onObjectifClick = { objectifId ->
-                objectifToEditId = objectifId
+                // Quand on clique sur un objectif dans la popup...
+                objectifToEditId = objectifId   // ...et on prépare l'ouverture de celle d'édition.
             },
-            onActiviteClick = { activiteId ->
-                // TODO: Gérer le clic sur une activité (ex: ouvrir un autre dialogue)
+            onActiviteClick = { activiteSelectionnee ->
+                // Quand on clique sur une activité dans la popup...
+                activiteToEdit = activiteSelectionnee // ...et on prépare l'ouverture du dialogue d'édition d'activité.
             }
         )
     }
 
-    // 2. Popup d'édition d'objectif
+    // 2. Dialogue d'édition d'objectif
     objectifToEditId?.let { id ->
         ObjectifEditDialog(
             viewModel = viewModel,
             objectifId = id,
             onDismiss = { objectifToEditId = null }
+        )
+    }
+
+    // 3. Dialogue d'édition d'activité
+    activiteToEdit?.let { activite ->
+        ActivityDialog(
+            act = activite,
+            onDismiss = {
+                activiteToEdit = null // Ferme le dialogue
+            },
+            onSave = { activiteMiseAJour ->
+                viewModel.updateActivite(activiteMiseAJour)
+                activiteToEdit = null // Ferme le dialogue
+            },
+            onDelete = { activiteASupprimer ->
+                viewModel.deleteActivite(activiteASupprimer)
+                activiteToEdit = null // Ferme le dialogue
+            }
         )
     }
 }
@@ -352,7 +374,7 @@ fun DayDetailsPopup(
     activites: List<Activite>,
     onDismiss: () -> Unit,
     onObjectifClick: (Long) -> Unit,
-    onActiviteClick: (Long) -> Unit
+    onActiviteClick: (Activite) -> Unit
 ) {
     // On filtre les listes pour ne garder que les données pertinentes pour la date sélectionnée
     val objectifsDuJour = remember(date, objectifs) {
@@ -409,7 +431,7 @@ fun DayDetailsPopup(
                             // On réutilise ActivityRow de Activity.kt
                             ActivityRow(
                                 act = activite,
-                                onEdit = { activite }
+                                onEdit = { onActiviteClick(activite) }
                             )
                         }
                     }
