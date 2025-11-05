@@ -55,8 +55,8 @@ object CaloriesGenerator {
         val calorieJournaliere = rmr * coefficient * facteurPoidsCible
 
         val proteines = (calorieJournaliere * 0.2F) / 4F
-        val glucides = (calorieJournaliere * 0.3F) / 4F
-        val lipides = (calorieJournaliere * 0.5F) / 4F
+        val lipides = (calorieJournaliere * 0.3F) / 9F
+        val glucides = (calorieJournaliere * 0.5F) / 4F
 
 
         // 4. Calcul final
