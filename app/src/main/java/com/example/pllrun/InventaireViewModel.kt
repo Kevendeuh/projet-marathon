@@ -423,3 +423,4 @@ class InventaireViewModelFactory(private val utilisateurDao: UtilisateurDao, pri
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
+

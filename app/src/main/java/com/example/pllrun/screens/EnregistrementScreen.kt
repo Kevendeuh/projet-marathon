@@ -82,6 +82,7 @@ import android.os.Build
 import android.provider.MediaStore
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
@@ -91,6 +92,7 @@ import java.util.Locale
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.pllrun.components.DatePickerComponent
+import com.example.pllrun.util.saveImageToInternalStorage
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import java.io.File
@@ -232,6 +234,17 @@ fun EnregistrementScreen(
     // --- Fonction de Sauvegarde ---
     fun saveUser() {
 
+        var finalImageUri: String? = null
+        if (imageUri != null && imageUri.toString().startsWith("content://")) {
+            // C'est un nouvel URI de la galerie, il faut le copier !
+            val newUri = saveImageToInternalStorage(context, imageUri!!)
+            finalImageUri = newUri?.toString()
+        } else {
+            // C'est soit null, soit déjà un URI de type "file://" (donc déjà copié)
+            finalImageUri = imageUri?.toString()
+        }
+
+
         //met le poids cible au poids normal si non rempli
         if(poidsCible.isEmpty()){
             poidsCible = poids
@@ -240,7 +253,7 @@ fun EnregistrementScreen(
         viewModel?.addNewUtilisateur(
             nom = nom,
             prenom = prenom,
-            imageUri = imageUri?.toString(),
+            imageUri = finalImageUri,
             dateDeNaissance = dateDeNaissance,
             sexe = sexe,
             poids = poids.toDouble(),
@@ -268,19 +281,17 @@ fun EnregistrementScreen(
     }
     **/
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
-            .background(Color(0xFFF1F1F1))
-            .padding(24.dp), // Réduit le padding général
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Utilisation d'un Column scrollable pour gérer tous les champs
         Column(
             modifier = Modifier
-                .weight(1f)
+                .statusBarsPadding()
                 .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 100.dp)
                 .verticalScroll(rememberScrollState()), // Ajout du scroll
             verticalArrangement = Arrangement.spacedBy(12.dp) // Réduit l'espacement
         ) {
@@ -289,7 +300,7 @@ fun EnregistrementScreen(
                 text = "Bienvenue !",
                 fontSize = 22.sp, // Légèrement réduit
                 fontWeight = FontWeight.Bold,
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 12.dp), // Réduit le padding
@@ -315,8 +326,8 @@ fun EnregistrementScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFE0E0E0), CircleShape),
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
                     contentScale = if (imageUri != null) ContentScale.Crop else ContentScale.Inside
                 )
 
@@ -326,14 +337,14 @@ fun EnregistrementScreen(
                         .align(Alignment.BottomEnd)
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFFF751F)) // Couleur orange
+                        .background(MaterialTheme.colorScheme.primary) // Couleur orange
                         .clickable { showImageSourceDialog = true },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_camera), // Créez cette icône
                         contentDescription = "Changer de photo",
-                        tint = Color.White,
+                        tint =  MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(20.dp)
                     )
 
@@ -379,7 +390,7 @@ fun EnregistrementScreen(
                 text = "Informations personnelles",
                 fontSize = 16.sp, // Légèrement réduit
                 fontWeight = FontWeight.Bold,
-                color = Color.Black,
+                color =  MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(vertical = 4.dp)
             )
 
@@ -392,7 +403,7 @@ fun EnregistrementScreen(
                     Text(
                         text = "Nom",
                         fontSize = 12.sp, // Réduit
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 2.dp)
                     )
                     OutlinedTextField(
@@ -409,7 +420,7 @@ fun EnregistrementScreen(
                     Text(
                         text = "Prénom",
                         fontSize = 12.sp, // Réduit
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 2.dp)
                     )
                     OutlinedTextField(
@@ -432,7 +443,7 @@ fun EnregistrementScreen(
                     Text(
                         text = "Poids",
                         fontSize = 12.sp, // Réduit
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 2.dp)
                     )
                     OutlinedTextField(
@@ -447,7 +458,7 @@ fun EnregistrementScreen(
                             Text(
                                 text = "Kg",
                                 fontSize = 12.sp, // Réduit
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(end = 8.dp)
                             )
                         }
@@ -458,7 +469,7 @@ fun EnregistrementScreen(
                     Text(
                         text = "Taille",
                         fontSize = 12.sp, // Réduit
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 2.dp)
                     )
                     OutlinedTextField(
@@ -473,7 +484,7 @@ fun EnregistrementScreen(
                             Text(
                                 text = "Cm",
                                 fontSize = 12.sp, // Réduit
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(end = 8.dp)
                             )
                         }
@@ -490,7 +501,7 @@ fun EnregistrementScreen(
                     // Label pour le champ
                     Text(
                         text = "Date de naissance",fontSize = 12.sp,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 2.dp)
                     )
                     Box {
@@ -509,7 +520,7 @@ fun EnregistrementScreen(
                                 Text(
                                     modifier = Modifier.clickable { showDatePicker = true },
                                     text = "JJ/MM/AAAA",
-                                    color = Color.Gray,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 14.sp
                                 )
                             }
@@ -534,7 +545,7 @@ fun EnregistrementScreen(
                 Text(
                     text = "Sexe",
                     fontSize = 12.sp, // Réduit
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 2.dp)
                 )
                 ExposedDropdownMenuBox(
@@ -553,7 +564,7 @@ fun EnregistrementScreen(
                         placeholder = {
                             Text(
                                 "Sélectionner",
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp // Réduit
                             )
                         },
@@ -583,7 +594,7 @@ fun EnregistrementScreen(
                 Text(
                     text = "Niveau d'expérience",
                     fontSize = 12.sp, // Réduit
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 2.dp)
                 )
                 ExposedDropdownMenuBox(
@@ -602,7 +613,7 @@ fun EnregistrementScreen(
                         placeholder = {
                             Text(
                                 "Sélectionner",
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp // Réduit
                             )
                         },
@@ -632,7 +643,7 @@ fun EnregistrementScreen(
                 text = "Jours d'entraînement préférés",
                 fontSize = 14.sp, // Réduit
                 fontWeight = FontWeight.Bold,
-                color = Color.Black,
+                color =  MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(vertical = 4.dp)
             )
 
@@ -653,7 +664,7 @@ fun EnregistrementScreen(
                     text = "Informations optionnelles",
                     fontSize = 14.sp, // Réduit
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black,
+                    color =  MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
 
@@ -663,13 +674,13 @@ fun EnregistrementScreen(
                         Text(
                             text = "Poids cible",
                             fontSize = 12.sp, // Réduit
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 2.dp)
                         )
                         Text(
                             text = " (optionnel)",
                             fontSize = 10.sp, // Réduit
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 2.dp)
                         )
                     }
@@ -685,7 +696,7 @@ fun EnregistrementScreen(
                             Text(
                                 text = "Kg",
                                 fontSize = 12.sp, // Réduit
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(end = 8.dp)
                             )
                         }
@@ -703,13 +714,13 @@ fun EnregistrementScreen(
                             Text(
                                 text = "VMA",
                                 fontSize = 12.sp, // Réduit
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(bottom = 2.dp)
                             )
                             Text(
                                 text = " (opt)",
                                 fontSize = 10.sp, // Réduit
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(bottom = 2.dp)
                             )
                         }
@@ -730,13 +741,13 @@ fun EnregistrementScreen(
                             Text(
                                 text = "FCM",
                                 fontSize = 12.sp, // Réduit
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(bottom = 2.dp)
                             )
                             Text(
                                 text = " (opt)",
                                 fontSize = 10.sp, // Réduit
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(bottom = 2.dp)
                             )
                         }
@@ -757,13 +768,13 @@ fun EnregistrementScreen(
                             Text(
                                 text = "FCR",
                                 fontSize = 12.sp, // Réduit
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(bottom = 2.dp)
                             )
                             Text(
                                 text = " (opt)",
                                 fontSize = 10.sp, // Réduit
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(bottom = 2.dp)
                             )
                         }
@@ -784,16 +795,23 @@ fun EnregistrementScreen(
             }
 
 
-        // Bouton Suivant
+        // Bouton Sauvegarder
         Button(
             onClick = {
                 if (isButtonEnabled) {
                     if(isEditMode && viewModel != null){
+                        var finalImageUri: String? = null
+                        if (imageUri != null && imageUri.toString().startsWith("content://")) {
+                            val newUri = saveImageToInternalStorage(context, imageUri!!)
+                            finalImageUri = newUri?.toString()
+                        } else {
+                            finalImageUri = imageUri?.toString()
+                        }
                         viewModel.updateUtilisateur(Utilisateur(
                             id = utilisateurId,
                             nom = nom,
                             prenom = prenom,
-                            imageUri = imageUri?.toString(),
+                            imageUri = finalImageUri,
                             dateDeNaissance = dateDeNaissance,
                             sexe = sexe,
                             poids = poids.toDouble(),
@@ -819,11 +837,20 @@ fun EnregistrementScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .align(Alignment.BottomCenter)
                 .height(48.dp),
             shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF751F), disabledContainerColor = Color.LightGray)
+            colors = ButtonDefaults.buttonColors(
+
+                containerColor = MaterialTheme.colorScheme.primaryContainer, // Utilisez la couleur primaire pour l'action principale !
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+
+                disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            )
         ) {
-            Text("Sauvegarder", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text("Sauvegarder", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
 
         // Bouton suppression utilisateur
@@ -836,9 +863,9 @@ fun EnregistrementScreen(
                 .fillMaxWidth()
                 .height(48.dp),
             shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF751F), disabledContainerColor = Color.LightGray)
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF751F), disabledContainerColor = MaterialTheme.colorScheme.primaryContainer)
         ) {
-            Text("supp", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text("supp", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primaryContainer)
         }
         **/
     }
@@ -906,7 +933,7 @@ fun DayCheckbox(
         Text(
             text = day.name.lowercase().replaceFirstChar { it.titlecase() },
             fontSize = 12.sp, // Réduit
-            color = Color.Black,
+            color =  MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(start = 2.dp) // Espacement réduit
         )
     }
@@ -925,7 +952,7 @@ fun DayCheckboxGrid(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(

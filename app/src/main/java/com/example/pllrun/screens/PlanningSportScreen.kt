@@ -81,7 +81,7 @@ fun PlanningSportScreen(viewModel: InventaireViewModel,
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF1F1F1)) // Fond gris clair
+            .background(MaterialTheme.colorScheme.background) // Fond gris clair
             .statusBarsPadding()
             .padding(24.dp)
     ) {
@@ -187,14 +187,14 @@ fun MonthHeader(
                 text = "Planning Sport",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.background
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = currentMonth.month.getDisplayName(TextStyle.FULL, Locale.FRENCH) + " " + currentMonth.year,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.surfaceVariant
             )
         }
 
@@ -287,7 +287,7 @@ fun DayOfWeekHeader() {
                 text = day,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center
             )
@@ -311,9 +311,9 @@ fun CalendarDayCell(
     // 2. Dans un objectif (gris léger)
     // 3. Par défaut (blanc)
     val backgroundColor = when {
-        isToday -> Color(0xFFFF751F)
-        isInObjectif -> Color.Gray.copy(alpha = 0.5f)
-        else -> Color.White
+        isToday -> MaterialTheme.colorScheme.primaryContainer
+        isInObjectif -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f)
+        else -> MaterialTheme.colorScheme.surfaceVariant
     }
     Box(
         modifier = modifier
@@ -324,7 +324,7 @@ fun CalendarDayCell(
             )
             .border(
                 width = 1.dp,
-                color = if (isWeekend) Color(0xFFFFE0B2) else Color(0xFFE0E0E0),
+                color = if (isWeekend) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
                 shape = RoundedCornerShape(8.dp)
             )
             .clickable(onClick = onClick),
@@ -340,7 +340,7 @@ fun CalendarDayCell(
                     text = date.dayOfMonth.toString(),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (isToday) Color.White else Color.Black,
+                    color = if (isToday) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
 
                 )
 
@@ -353,7 +353,7 @@ fun CalendarDayCell(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .background(
-                                    color = if (isToday) Color.White else Color(0xFFFF751F),
+                                    color = if (isToday) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primaryContainer,
                                     shape = CircleShape
                                 )
                         )
@@ -392,7 +392,7 @@ fun DayDetailsPopup(
                 .fillMaxWidth()
                 .heightIn(max = 600.dp), // Hauteur max pour éviter de remplir tout l'écran
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F1F1))
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column {
                 // En-tête de la popup
@@ -441,7 +441,7 @@ fun DayDetailsPopup(
                         item {
                             Text(
                                 "Rien de prévu pour ce jour.",
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.surfaceVariant,
                                 modifier = Modifier
                                     .padding(vertical = 32.dp)
                                     .fillMaxWidth(),

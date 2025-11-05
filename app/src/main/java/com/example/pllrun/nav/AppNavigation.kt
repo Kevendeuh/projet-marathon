@@ -75,7 +75,7 @@ fun AppNavHost(
                 viewModel = viewModel,
                 // On convertit l'ID (String) en Long, ou on passe null si absent
                 utilisateurId = utilisateurId?.toLongOrNull(),
-                onNext = { navController.popBackStack() },
+                onNext = { navController.navigate(AppScreen.Hub.name) },
 
             )
         }
