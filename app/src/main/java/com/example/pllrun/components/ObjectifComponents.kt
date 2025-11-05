@@ -617,7 +617,7 @@ private fun DeleteConfirmationDialog(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = onDeleteObjectifOnly,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.onErrorContainer
+                        containerColor = MaterialTheme.colorScheme.errorContainer
 
                     )
                 ) {
@@ -629,8 +629,14 @@ private fun DeleteConfirmationDialog(
                 Button(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = onDismiss,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+
+                    )
                 ) {
-                    Text("Annuler")
+                    Text(text= "Annuler",
+                    color = MaterialTheme.colorScheme.inverseSurface
+                    )
                 }
             }
         },
