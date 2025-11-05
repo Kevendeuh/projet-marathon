@@ -61,6 +61,10 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
         return utilisateurDao.getUtilisateurByIdFlow(utilisateurId)
     }
 
+    fun getUtilisateurById(utilisateurId: Long): LiveData<Utilisateur?>{
+        return utilisateurDao.getUtilisateurById(utilisateurId)
+    }
+
 
     fun getAllUtilisateurs(): LiveData<List<Utilisateur>> = utilisateurDao.getAllUtilisateurs()
 

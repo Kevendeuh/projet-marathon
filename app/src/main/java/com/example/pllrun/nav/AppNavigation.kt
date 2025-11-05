@@ -40,8 +40,13 @@ fun AppNavHost(
     navController: NavHostController,
     viewModel: InventaireViewModel
 ) {
+
+    // --- DÉFINITION DES ROUTES AVEC ARGUMENTS ---
+    // On définit les routes ici pour la clarté et pour éviter les "chaînes magiques".
+    val routeEnregistrement = "${AppScreen.Enregistrement.name}?utilisateurId={utilisateurId}"
+    val argumentUtilisateurId = "utilisateurId"
+
     // État pour vérifier si l'utilisateur est inscrit
-    var idUtilisateur by remember { mutableStateOf(0) }
 
     NavHost(
         navController = navController,
@@ -53,13 +58,24 @@ fun AppNavHost(
 
 
         }
+        // --- Écran d'Enregistrement
+        composable(
+            route = routeEnregistrement, // On utilise notre variable de route
+            // On déclare que 'utilisateurId' est un argument optionnel (nullable = true)
+            arguments = listOf(navArgument(argumentUtilisateurId) {
+                type = NavType.StringType
+                nullable = true
+            })
+        ) { backStackEntry ->
+            // On récupère la valeur de l'argument
+            val utilisateurId = backStackEntry.arguments?.getString(argumentUtilisateurId)
 
-        composable(route = AppScreen.Enregistrement.name) {
             EnregistrementScreen(
-                onNext = {
-                    navController.navigate(AppScreen.Objectif.name)
-                },
-                viewModel = viewModel
+                viewModel = viewModel,
+                // On convertit l'ID (String) en Long, ou on passe null si absent
+                utilisateurId = utilisateurId?.toLongOrNull(),
+                onNext = { navController.popBackStack() },
+
             )
         }
         composable(route = AppScreen.Objectif.name) {

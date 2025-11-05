@@ -82,7 +82,9 @@ import android.os.Build
 import android.provider.MediaStore
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -98,12 +100,17 @@ import kotlin.text.lowercase
 @Composable
 fun EnregistrementScreen(
     viewModel: InventaireViewModel?,
+    utilisateurId: Long?,
     onNext: () -> Unit,
 ) {
+    // --- 1. DÉTECTION DU MODE ---
+    val isEditMode = utilisateurId != null
+
     // --- ÉTATS POUR L'IMAGE ---
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var imageVersion by remember { mutableStateOf(0L) }
+
 
     // --- LANCEURS POUR LES ACTIVITÉS ---
     // Lanceur pour sélectionner une image depuis la galerie
@@ -188,6 +195,31 @@ fun EnregistrementScreen(
     // Options pour les menus déroulants
     val isButtonEnabled = remember(nom, prenom, dateDeNaissance, joursSelectionnes, poidsCible) {
         isFormValid(nom=nom, prenom=prenom, dateDeNaissance= dateDeNaissance , poids = poids.toDoubleOrNull(), taille=taille.toIntOrNull(), joursEntrainementDisponibles = joursSelectionnes.toList() )
+    }
+
+    // --- 3. CHARGEMENT DES DONNÉES EN MODE MODIFICATION ---
+    if (isEditMode && viewModel != null) {
+        // On observe l'utilisateur à modifier depuis le ViewModel
+        val userToEdit by viewModel.getUtilisateurById(utilisateurId).observeAsState()
+
+        // LaunchedEffect se déclenchera une seule fois quand userToEdit sera chargé
+        LaunchedEffect(userToEdit) {
+            userToEdit?.let { user ->
+                nom = user.nom
+                poids = user.poids.toString()
+                taille = user.taille.toString()
+                dateDeNaissance = user.dateDeNaissance ?: LocalDate.now()
+                niveau = user.niveauExperience
+                joursSelectionnes = user.joursEntrainementDisponibles.toSet()
+                vma = user.vma.toString()
+                fcm = user.fcm.toString()
+                fcr = user.fcr.toString()
+                prenom = user.prenom
+                imageUri = user.imageUri?.toUri()
+                sexe = user.sexe
+                poidsCible = user.poidsCible.toString()
+            }
+        }
     }
 
 
