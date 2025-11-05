@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -25,6 +26,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
@@ -39,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -136,8 +139,9 @@ fun ObjectifScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF1F1F1)) // Fond gris clair
-            .padding(24.dp),
+            .background(MaterialTheme.colorScheme.background) // Fond gris clair
+            .padding(24.dp)
+            .statusBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Titre "Quel est votre objectif ?"
@@ -145,7 +149,7 @@ fun ObjectifScreen(
             text = "Quel est votre objectif ?",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.primaryContainer,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 32.dp),
@@ -164,7 +168,7 @@ fun ObjectifScreen(
                 Text(
                     text = "Nom de l'objectif",
                     fontSize = 14.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
                 OutlinedTextField(
@@ -177,7 +181,7 @@ fun ObjectifScreen(
                     placeholder = {
                         Text(
                             "Ex: Préparation marathon",
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 14.sp
                         )
                     }
@@ -196,7 +200,7 @@ fun ObjectifScreen(
                         Text(
                             text = "Date début",
                             fontSize = 14.sp,
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 4.dp)
                         )
                         Box {
@@ -242,7 +246,7 @@ fun ObjectifScreen(
                     Text(
                             text = "Date fin",
                             fontSize = 14.sp,
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 4.dp)
                         )
                     Box {
@@ -380,14 +384,17 @@ fun ObjectifScreen(
                 Text(
                     text = "Description de l'objectif",
                     fontSize = 14.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp)
-                        .background(Color.White, RoundedCornerShape(8.dp))
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            RoundedCornerShape(8.dp)
+                        )
                         .padding(16.dp)
                 ) {
                     BasicTextField(
@@ -396,17 +403,19 @@ fun ObjectifScreen(
                         modifier = Modifier.fillMaxSize(),
                         textStyle = TextStyle(
                             fontSize = 16.sp,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurfaceVariant),
                         decorationBox = { innerTextField ->
                             if (descriptionObjectif.isEmpty()) {
                                 Text(
                                     "Rédiger votre objectif ici ...",
                                     fontSize = 16.sp,
-                                    color = Color.Gray
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                 )
                             }
-                            innerTextField()
+                            innerTextField(
+                            )
                         }
                     )
                 }
@@ -443,14 +452,14 @@ fun ObjectifScreen(
                 .height(48.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFF751F) // Orange
+                containerColor =  MaterialTheme.colorScheme.primaryContainer // Orange
             )
         ) {
             Text(
                 text = "Enregistrer",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color =  MaterialTheme.colorScheme.onPrimary
             )
         }
 
@@ -481,14 +490,14 @@ fun ObjectifScreen(
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFF751F) // Orange
+                containerColor =  MaterialTheme.colorScheme.primaryContainer // Orange
             )
         ) {
             Text(
                 text = "Enregistrer avec activités",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color =  MaterialTheme.colorScheme.onPrimary
             )
         }
 
@@ -502,7 +511,7 @@ fun ObjectifScreen(
             Text(
                 text = "Ignorer",
                 fontSize = 16.sp,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

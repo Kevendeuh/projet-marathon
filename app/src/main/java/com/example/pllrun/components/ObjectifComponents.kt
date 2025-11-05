@@ -87,7 +87,7 @@ fun ObjectifCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp), // Coins arrondis cohérents avec le reste de l'app
         colors = CardDefaults.cardColors(
-            containerColor = Color.White // Fond blanc comme les champs de texte
+            containerColor = MaterialTheme.colorScheme.surface // Fond blanc comme les champs de texte
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 2.dp // Petite ombre pour donner de la profondeur
@@ -124,7 +124,7 @@ fun ObjectifCard(
                 Text(
                     text = "Type : ${objectif.type.libelle}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.inverseSurface
                 )
                 Text(
                     text = "Période : ${objectif.dateDeDebut.format(dateFormatter)} au ${objectif.dateDeFin.format(dateFormatter)}",
@@ -185,7 +185,7 @@ fun ObjectifsListContent(
         Text(
             text = "Aucun objectif défini. Appuyez sur 'Ajouter Objectif' pour commencer !",
             fontSize = 14.sp,
-            color = Color.Gray
+            color = MaterialTheme.colorScheme.inverseSurface
         )
     } else {
         // On utilise une Column simple car on est déjà dans un composant scrollable
@@ -543,7 +543,7 @@ fun ValidationField(
 ) {
     val icon = if (isValid) Icons.Filled.CheckCircle else Icons.Filled.Cancel
     val text = if (isValid) "Objectif validé" else "Non validé"
-    val color = if (isValid) MaterialTheme.colorScheme.primary else Color.Gray
+    val color = if (isValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.inverseSurface
 
     Row(
         modifier = Modifier

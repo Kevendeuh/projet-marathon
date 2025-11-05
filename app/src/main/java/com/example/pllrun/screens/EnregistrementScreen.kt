@@ -92,6 +92,7 @@ import java.util.Locale
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.pllrun.components.DatePickerComponent
+import com.example.pllrun.util.saveImageToInternalStorage
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import java.io.File
@@ -233,6 +234,17 @@ fun EnregistrementScreen(
     // --- Fonction de Sauvegarde ---
     fun saveUser() {
 
+        var finalImageUri: String? = null
+        if (imageUri != null && imageUri.toString().startsWith("content://")) {
+            // C'est un nouvel URI de la galerie, il faut le copier !
+            val newUri = saveImageToInternalStorage(context, imageUri!!)
+            finalImageUri = newUri?.toString()
+        } else {
+            // C'est soit null, soit déjà un URI de type "file://" (donc déjà copié)
+            finalImageUri = imageUri?.toString()
+        }
+
+
         //met le poids cible au poids normal si non rempli
         if(poidsCible.isEmpty()){
             poidsCible = poids
@@ -241,7 +253,7 @@ fun EnregistrementScreen(
         viewModel?.addNewUtilisateur(
             nom = nom,
             prenom = prenom,
-            imageUri = imageUri?.toString(),
+            imageUri = finalImageUri,
             dateDeNaissance = dateDeNaissance,
             sexe = sexe,
             poids = poids.toDouble(),
@@ -269,19 +281,17 @@ fun EnregistrementScreen(
     }
     **/
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
             .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp), // Réduit le padding général
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Utilisation d'un Column scrollable pour gérer tous les champs
         Column(
             modifier = Modifier
-                .weight(1f)
+                .statusBarsPadding()
                 .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 100.dp)
                 .verticalScroll(rememberScrollState()), // Ajout du scroll
             verticalArrangement = Arrangement.spacedBy(12.dp) // Réduit l'espacement
         ) {
@@ -790,11 +800,18 @@ fun EnregistrementScreen(
             onClick = {
                 if (isButtonEnabled) {
                     if(isEditMode && viewModel != null){
+                        var finalImageUri: String? = null
+                        if (imageUri != null && imageUri.toString().startsWith("content://")) {
+                            val newUri = saveImageToInternalStorage(context, imageUri!!)
+                            finalImageUri = newUri?.toString()
+                        } else {
+                            finalImageUri = imageUri?.toString()
+                        }
                         viewModel.updateUtilisateur(Utilisateur(
                             id = utilisateurId,
                             nom = nom,
                             prenom = prenom,
-                            imageUri = imageUri?.toString(),
+                            imageUri = finalImageUri,
                             dateDeNaissance = dateDeNaissance,
                             sexe = sexe,
                             poids = poids.toDouble(),
@@ -820,6 +837,8 @@ fun EnregistrementScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .align(Alignment.BottomCenter)
                 .height(48.dp),
             shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.buttonColors(

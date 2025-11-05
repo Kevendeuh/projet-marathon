@@ -97,7 +97,7 @@ fun HubScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF1F1F1))
+            .background(MaterialTheme.colorScheme.background)
     ) {
 
         // --- 1. CONTENU PRINCIPAL (HEADER + LISTE SCROLLABLE) ---
@@ -117,13 +117,13 @@ fun HubScreen(
                     text = "Hub",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 TextButton(onClick = onEditProfile) {
                     Text(
                         text = "Modifier profil",
                         fontSize = 16.sp,
-                        color = Color(0xFFFF751F) // Orange
+                        color = MaterialTheme.colorScheme.primaryContainer// Orange
                     )
                 }
             }
@@ -149,7 +149,7 @@ fun HubScreen(
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_flag),
                                 contentDescription = "Icône d'objectif",
-                                tint = Color(0xFFFF751F) // Couleur orange
+                                tint = MaterialTheme.colorScheme.primaryContainer// Couleur orange
                             )
                         },
                     ) {
@@ -174,7 +174,7 @@ fun HubScreen(
                         icon = { Icon(painterResource(R.drawable.ic_flag), "Activités", tint = Color(0xFFFF751F)) }
                     ) {
                         if (activitesDuJour.isEmpty()) {
-                            Text("Aucune activité planifiée pour aujourd’hui.", color = Color.Gray)
+                            Text("Aucune activité planifiée pour aujourd’hui.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 activitesDuJour.sortedBy { it.heureDeDebut }.forEach { act ->
@@ -195,7 +195,7 @@ fun HubScreen(
                         text = "Conseils santé",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
                 }
@@ -220,7 +220,7 @@ fun HubScreen(
                                 Icon(
                                     imageVector = Icons.Default.Bedtime,
                                     contentDescription = "Icône de sommeil",
-                                    tint = Color(0xFFFF751F) // Couleur orange
+                                    tint = MaterialTheme.colorScheme.primaryContainer// Couleur orange
                                 )
                             },
                             onThreeDotsClick = { /* TODO: Naviguer vers écran sommeil */ },
@@ -230,7 +230,7 @@ fun HubScreen(
                             Text(
                                 text = descriptionSommeil,
                                 fontSize = 14.sp,
-                                color = Color.Gray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
@@ -258,11 +258,11 @@ fun HubScreen(
                                     Text(
                                         "P: ${nutriments.proteines.toInt()}g | G: ${nutriments.glucides.toInt()}g | L: ${nutriments.lipides.toInt()}g",
                                         fontSize = 12.sp,
-                                        color = Color.Gray
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             } else {
-                                Text("N/A", fontSize = 14.sp, color = Color.Gray)
+                                Text("N/A", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -281,7 +281,7 @@ fun HubScreen(
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFF751F) // Orange
+                containerColor = MaterialTheme.colorScheme.primaryContainer// Orange
             ),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp) // Ombre du bouton
         ) {
@@ -289,7 +289,7 @@ fun HubScreen(
                 text = "Ajouter Objectif",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color =MaterialTheme.colorScheme.onPrimary
             )
         }
     }
@@ -342,7 +342,7 @@ fun TaskCard(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor =MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -366,7 +366,7 @@ fun TaskCard(
                     text = title,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
 
@@ -382,14 +382,14 @@ fun TaskCard(
                     modifier = Modifier
                         .size(32.dp)
                         .clickable(onClick = onThreeDotsClick)
-                        .background(Color(0xFFF5F5F5), RoundedCornerShape(6.dp)),
+                        .background( MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(6.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "...",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
                 }
