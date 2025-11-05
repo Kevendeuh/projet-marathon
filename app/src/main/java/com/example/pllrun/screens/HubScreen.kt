@@ -1,48 +1,20 @@
 package com.example.pllrun.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pllrun.Classes.Utilisateur
@@ -51,18 +23,15 @@ import com.example.pllrun.R
 import com.example.pllrun.calculator.calculHeureCouche
 import com.example.pllrun.calculator.calculTotalCalories
 import com.example.pllrun.calculator.calculTotalMinutesSleep
-import com.example.pllrun.components.ObjectifCard
 import com.example.pllrun.components.ObjectifEditDialog
 import com.example.pllrun.components.ObjectifsListContent
-import kotlinx.coroutines.flow.first
+import com.example.pllrun.components.ActivityRow
+import com.example.pllrun.components.ActivityDialog
 import kotlinx.coroutines.flow.firstOrNull
-import java.time.LocalTime
-import androidx.compose.material.icons.filled.Bedtime
-import androidx.compose.material.icons.filled.Restaurant
 import java.time.LocalDate
+import java.time.LocalTime
 import androidx.compose.runtime.collectAsState
-
-
+import androidx.compose.foundation.layout.ColumnScope
 
 @Composable
 fun HubScreen(
@@ -71,7 +40,6 @@ fun HubScreen(
     onPlanningSport: () -> Unit,
     onAddGoal: () -> Unit,
 ) {
-    // ... (Toutes les déclarations de variables restent les mêmes)
     var utilisateurPrincipal by remember { mutableStateOf<Utilisateur?>(null) }
     var tempsSommeilSuggere by remember { mutableStateOf<Long?>(null) }
     var heureCoucheSuggeree by remember { mutableStateOf<LocalTime?>(null) }
@@ -79,8 +47,10 @@ fun HubScreen(
     var showEditDialog by remember { mutableStateOf(false) }
     var selectedObjectifId by remember { mutableStateOf<Long?>(null) }
 
-    LaunchedEffect(key1 = true) {
-        // ... (Le code du LaunchedEffect reste le même)
+    // Pop-up activité
+    var selectedActivity by remember { mutableStateOf<com.example.pllrun.Classes.Activite?>(null) }
+
+    LaunchedEffect(Unit) {
         val user = viewModel.getAllUtilisateurs().firstOrNull()?.firstOrNull()
         if (user != null) {
             utilisateurPrincipal = user
@@ -89,24 +59,20 @@ fun HubScreen(
             totalCaloriesSuggeree = calculTotalCalories(user, viewModel)
         }
     }
+
+    // Activités du jour
     val today = remember { LocalDate.now() }
     val activitesDuJour by viewModel.getActivitesForDay(today)
         .collectAsState(initial = emptyList())
-
-
-    // --- STRUCTURE PRINCIPALE AVEC BOX ---
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF1F1F1))
     ) {
-
-        // --- 1. CONTENU PRINCIPAL (HEADER + LISTE SCROLLABLE) ---
-        // Cette Column contient le header et la liste.
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // --- HEADER ---
+            // Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -125,21 +91,21 @@ fun HubScreen(
                     Text(
                         text = "Modifier profil",
                         fontSize = 16.sp,
-                        color = Color(0xFFFF751F) // Orange
+                        color = Color(0xFFFF751F)
                     )
                 }
             }
 
-            // --- CONTENU SCROLLABLE ---
+            // Liste scrollable
             LazyColumn(
                 modifier = Modifier
-                    .weight(1f) // Prend tout l'espace restant dans la Column
+                    .weight(1f)
                     .padding(horizontal = 24.dp),
-                // Ajoute un padding en bas pour que le dernier élément ne soit pas caché par le bouton
                 contentPadding = PaddingValues(bottom = 100.dp)
             ) {
                 item { Spacer(modifier = Modifier.height(16.dp)) }
 
+                // Objectifs en cours
                 item {
                     TaskCard(
                         title = "Objectifs en cours",
@@ -151,7 +117,7 @@ fun HubScreen(
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_flag),
                                 contentDescription = "Icône d'objectif",
-                                tint = Color(0xFFFF751F) // Couleur orange
+                                tint = Color(0xFFFF751F)
                             )
                         },
                     ) {
@@ -167,14 +133,15 @@ fun HubScreen(
                         }
                     }
                 }
+
+                // Activités du jour
                 item {
                     TaskCard(
                         title = "Activités du jour",
-                        onThreeDotsClick = onPlanningSport, // ouvre le planning si besoin
+                        onThreeDotsClick = onPlanningSport,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 24.dp),
-                        // icône optionnelle
                         icon = {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_flag),
@@ -191,11 +158,12 @@ fun HubScreen(
                         } else {
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 activitesDuJour
-                                    .sortedBy { it.heureDeDebut } // joli tri par heure
+                                    .sortedBy { it.heureDeDebut?.toString() }
                                     .forEach { act ->
                                         ActivityRow(
                                             act = act,
-                                            onClick = onPlanningSport   // ou ouvrir un écran de détail quand tu l’auras
+                                            onClick = { selectedActivity = act },   // tap sur la carte
+                                            onEdit = { selectedActivity = it }      // tap sur le crayon
                                         )
                                     }
                             }
@@ -203,6 +171,7 @@ fun HubScreen(
                     }
                 }
 
+                // Conseils santé
                 item {
                     Text(
                         text = "Conseils santé",
@@ -220,38 +189,33 @@ fun HubScreen(
                             .padding(bottom = 32.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        var descriptionSommeil = "estimation impossible veuillez renseigner utilisateur"
-                        if (tempsSommeilSuggere != null) {
-                            descriptionSommeil =
-                                " temps de sommeil suggéré:$tempsSommeilSuggere minutes \n heure de couche suggérée:$heureCoucheSuggeree"
-                        }
+                        val descriptionSommeil =
+                            if (tempsSommeilSuggere != null && heureCoucheSuggeree != null)
+                                "Temps de sommeil suggéré : $tempsSommeilSuggere min\nHeure de coucher suggérée : $heureCoucheSuggeree"
+                            else
+                                "Estimation impossible — renseigne ton profil"
+
                         TaskCard(
                             title = "Sommeil",
-                            // AJOUT : Passage de l'icône
                             icon = {
                                 Icon(
-                                    imageVector = Icons.Default.Bedtime,                                    contentDescription = "Icône de sommeil",
-                                    tint = Color(0xFFFF751F) // Couleur orange
+                                    imageVector = Icons.Default.Bedtime,
+                                    contentDescription = "Icône de sommeil",
+                                    tint = Color(0xFFFF751F)
                                 )
                             },
-                            onThreeDotsClick = { /* TODO: Naviguer vers écran sommeil */ },
+                            onThreeDotsClick = { /* TODO */ },
                             modifier = Modifier.weight(1f)
-                        )
-                        {
-                            Text(
-                                text = descriptionSommeil,
-                                fontSize = 14.sp,
-                                color = Color.Gray
-                            )
+                        ) {
+                            Text(text = descriptionSommeil, fontSize = 14.sp, color = Color.Gray)
                         }
 
-                        var descriptionCalories = "estimation impossible veuillez renseigner utilisateur"
-                        if (totalCaloriesSuggeree != null) {
-                            descriptionCalories = " Calories suggérées:$totalCaloriesSuggeree"
-                        }
+                        val descriptionCalories =
+                            totalCaloriesSuggeree?.let { "Calories suggérées : $it" }
+                                ?: "Estimation impossible — renseigne ton profil"
+
                         TaskCard(
                             title = "À Manger",
-                            // AJOUT : Passage de l'icône
                             icon = {
                                 Icon(
                                     imageVector = Icons.Default.Restaurant,
@@ -259,34 +223,30 @@ fun HubScreen(
                                     tint = Color(0xFFFF751F)
                                 )
                             },
-                            onThreeDotsClick = { /* TODO: Naviguer vers écran nutrition */ },
+                            onThreeDotsClick = { /* TODO */ },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text(
-                                text = descriptionCalories,
-                                fontSize = 14.sp,
-                                color = Color.Gray,
-                            )
+                            Text(text = descriptionCalories, fontSize = 14.sp, color = Color.Gray)
                         }
                     }
                 }
             }
         }
 
-        // --- 2. BOUTON FLOTTANT ---
+        // Bouton flottant
         Button(
             onClick = onAddGoal,
             modifier = Modifier
-                .align(Alignment.BottomCenter) // Aligne le bouton en bas au centre de la Box
+                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(start = 24.dp, end = 24.dp, bottom = 24.dp) // Espace autour du bouton
+                .padding(start = 24.dp, end = 24.dp, bottom = 24.dp)
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFF751F) // Orange
+                containerColor = Color(0xFFFF751F)
             ),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp) // Ombre du bouton
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
         ) {
             Text(
                 text = "Ajouter Objectif",
@@ -297,8 +257,7 @@ fun HubScreen(
         }
     }
 
-
-    // ---- AFFICHAGE CONDITIONNEL DU DIALOGUE ----
+    // Pop-up d’édition d’objectif
     selectedObjectifId?.let { id ->
         if (showEditDialog) {
             ObjectifEditDialog(
@@ -311,72 +270,39 @@ fun HubScreen(
             )
         }
     }
-}
 
-@Composable
-fun ActivityRow(
-    act: com.example.pllrun.Classes.Activite,
-    onClick: () -> Unit = {}
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFDFDFD)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = act.nom,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.Black
-            )
-
-            // Ligne d’infos : heure • type • niveau • statut
-            val typeLibelle = try { act.typeActivite.libelle } catch (_: Throwable) { act.typeActivite.name }
-            val niveauLibelle = try { act.niveau.libelle } catch (_: Throwable) { act.niveau.name }
-            Text(
-                text = "${act.heureDeDebut} • $typeLibelle • $niveauLibelle" +
-                        if (act.estComplete) " • Terminé" else " • À faire",
-                fontSize = 13.sp,
-                color = Color(0xFF666666)
-            )
-
-            if (act.description.isNotBlank()) {
-                Text(
-                    text = act.description,
-                    fontSize = 13.sp,
-                    color = Color(0xFF7A7A7A)
-                )
+    // Pop-up d’édition d’activité (avec Switch terminé/à faire)
+    selectedActivity?.let { act ->
+        ActivityDialog(
+            act = act,
+            onDismiss = { selectedActivity = null },
+            onSave = { updated ->
+                viewModel.updateActivite(updated)
+                viewModel.recalculateObjectifProgress(updated.objectifId)
+                selectedActivity = null
+            },
+            onDelete = { toDelete ->
+                viewModel.deleteActivite(toDelete)
+                viewModel.recalculateObjectifProgress(toDelete.objectifId)
+                selectedActivity = null
             }
-        }
+        )
     }
 }
 
-
-// Dans HubScreen.kt
-
-// Composant réutilisable pour les cartes de tâches
+/** Carte réutilisable */
 @Composable
 fun TaskCard(
     title: String,
     onThreeDotsClick: () -> Unit,
     modifier: Modifier = Modifier,
-    // AJOUT : Paramètre optionnel pour l'icône
     icon: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
@@ -384,17 +310,11 @@ fun TaskCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // MODIFICATION : Le titre est maintenant dans un Row pour accueillir l'icône
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 8.dp)
             ) {
-                // Affiche l'icône si elle est fournie
-                icon?.let {
-                    it() // Exécute le Composable de l'icône
-                    Spacer(modifier = Modifier.width(8.dp)) // Espace entre l'icône et le titre
-                }
-                // Titre de la carte
+                icon?.let { it(); Spacer(modifier = Modifier.width(8.dp)) }
                 Text(
                     text = title,
                     fontSize = 18.sp,
@@ -402,11 +322,8 @@ fun TaskCard(
                     color = Color.Black
                 )
             }
-
             content()
-            Spacer(modifier = Modifier.height(16.dp)) // Ajout d'un espace avant les points
-
-            // Ligne des trois points en bas
+            Spacer(modifier = Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
@@ -418,62 +335,9 @@ fun TaskCard(
                         .background(Color(0xFFF5F5F5), RoundedCornerShape(6.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "...",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center
-                    )
+                    Text("...", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
                 }
             }
         }
     }
-    @Composable
-    fun ActivityRow(
-        act: com.example.pllrun.Classes.Activite,
-        onClick: () -> Unit = {}
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick),
-            shape = RoundedCornerShape(10.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFFDFDFD)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = act.nom,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.Black
-                )
-
-                // Ligne d’infos : heure • type • niveau • statut
-                val typeLibelle = try { act.typeActivite.libelle } catch (_: Throwable) { act.typeActivite.name }
-                val niveauLibelle = try { act.niveau.libelle } catch (_: Throwable) { act.niveau.name }
-                Text(
-                    text = "${act.heureDeDebut} • $typeLibelle • $niveauLibelle" +
-                            if (act.estComplete) " • Terminé" else " • À faire",
-                    fontSize = 13.sp,
-                    color = Color(0xFF666666)
-                )
-
-                if (act.description.isNotBlank()) {
-                    Text(
-                        text = act.description,
-                        fontSize = 13.sp,
-                        color = Color(0xFF7A7A7A)
-                    )
-                }
-            }
-        }
-    }
-
 }
-
-
