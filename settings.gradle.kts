@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "PllRun"
 include(":app")
- 
+include(":pllrunwatch")
