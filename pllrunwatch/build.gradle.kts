@@ -52,8 +52,9 @@ android {
 }
 
 dependencies {
-    //implementation(libs.play.services.wearable)
-    implementation("com.google.android.gms:play-services-wearable:18.1.0")
+    // MISE À JOUR : Version plus récente qui évite souvent les conflits Guava
+    implementation("com.google.android.gms:play-services-wearable:18.2.0")
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
@@ -63,17 +64,37 @@ dependencies {
     implementation(libs.androidx.wear.tooling.preview)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)
-    implementation(libs.play.services.nearby)
+
+    // MISE À JOUR : Utilisez une version récente de play-services-nearby si possible
+    implementation("com.google.android.gms:play-services-nearby:19.0.0")
+
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-        // Health Services (Wear)
+
+    // Health Services (Wear)
     implementation(libs.androidx.health.services.client)
-    // Health Connect client (to write records)
-    implementation("androidx.health.connect:connect-client:1.1.0")// Coroutines / lifecycle
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+
+    // Health Connect
+    implementation("androidx.health.connect:connect-client:1.1.0")
+
+    // Coroutines & Lifecycle
+    // Cette ligne est celle qui permet d'utiliser .await() sur les Tasks Google
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    // To use CallbackToFutureAdapter
+    implementation("androidx.concurrent:concurrent-futures:1.3.0")
+
+    // Kotlin
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.6.0")
+    // La dépendance critique pour ListenableFuture
     implementation("com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava")
-    implementation(libs.androidx.lifecycle.runtime.ktx)
+}
+
+configurations.all {
+    resolutionStrategy {
+        // Force l'utilisation de la version vide de ListenableFuture pour éviter les conflits
+        force("com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava")
+    }
 }
