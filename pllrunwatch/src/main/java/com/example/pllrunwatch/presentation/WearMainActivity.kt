@@ -5,301 +5,290 @@
 
 package com.example.pllrunwatch.presentation
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import android.Manifest
+import android.Manifest.permission
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.health.connect.client.HealthConnectClient
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
+import androidx.wear.compose.material.Button
+import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
 import androidx.wear.tooling.preview.devices.WearDevices
-import com.example.pllrunwatch.R
 import com.example.pllrunwatch.presentation.health.HealthConnectWriter
-import com.example.pllrunwatch.presentation.health.MetricSample
-import com.example.pllrunwatch.presentation.health.MetricType
-import com.example.pllrunwatch.presentation.health.PassiveDataService
-import com.example.pllrunwatch.presentation.theme.PllRunTheme
-import java.time.Instant
-
-import androidx.health.connect.client.records.HeartRateRecord
-import androidx.health.connect.client.records.StepsRecord
-import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.result.launch
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
-import androidx.core.graphics.values
-import androidx.health.connect.client.request.ReadRecordsRequest
-import androidx.health.connect.client.time.TimeRangeFilter
-import androidx.wear.compose.material.Button
 import com.example.pllrunwatch.presentation.health.HealthServicesManager
+import com.example.pllrunwatch.presentation.health.SensorDataRepository
+import com.example.pllrunwatch.presentation.theme.PllRunTheme
 import kotlinx.coroutines.launch
-import java.time.temporal.ChronoUnit
 
 class WearMainActivity : ComponentActivity() {
-    // CHANGÉ : On utilise lateinit pour les deux, car leur création dépend d'une condition.
-    private lateinit var hcWriter: HealthConnectWriter
+
     private lateinit var healthServicesManager: HealthServicesManager
 
-    // Pour gérer l'état de la disponibilité de Health Connect
-    private var healthConnectAvailable by mutableStateOf(false)
-    // État pour savoir si on a les permissions (pour mettre à jour l'UI)
-    private var permissionsGranted by mutableStateOf(false)
-    // --- ÉTATS POUR LE DEBUG ---
-    private var lastHeartRate by mutableStateOf("--")
-    private var todaySteps by mutableStateOf("--")
+    // Enum pour gérer proprement l'état de l'UI
+    enum class PermissionState {
+        LOADING,
+        NEEDS_BODY_SENSORS,
+        NEEDS_ACTIVITY_RECOGNITION,
+        NEEDS_BACKGROUND_SETTINGS,
+        GRANTED
+    }
 
-
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         healthServicesManager = HealthServicesManager(this)
 
-        // On vérifie la disponibilité de Health Connect
-        checkHealthConnectAvailability()
-
         setContent {
-            // Liste des permissions Android ET Health Connect
-            val permissions = arrayOf(
-                Manifest.permission.BODY_SENSORS,
-                Manifest.permission.ACTIVITY_RECOGNITION,
-                // Permissions Health Connect (nécessaires pour lire/écrire)
-                "android.permission.health.READ_HEART_RATE",
-                "android.permission.health.WRITE_HEART_RATE",
-                "android.permission.health.READ_STEPS",
-                "android.permission.health.WRITE_STEPS"
-            )
+            PllRunTheme {
 
-            // Launcher pour demander les permissions
-            val permissionLauncher = rememberLauncherForActivityResult(
-                ActivityResultContracts.RequestMultiplePermissions()
-            ) { result ->
-                // Log des résultats
-                result.forEach { (perm, granted) -> Log.d("DEBUG_PERM", "$perm -> $granted") }
-
-                val allGranted = result.values.all { it }
-                permissionsGranted = allGranted
-                if (allGranted) {
-                    Log.d("WearMainActivity", "Permissions accordées via Launcher.")
-                    activatePassiveMonitoring()
-                } else {
-                    Log.e("WearMainActivity", "Permissions refusées via Launcher.")
+                // 1. Launcher pour le PREMIER PLAN uniquement
+                val foregroundPermissions = remember { arrayOf(
+                    Manifest.permission.BODY_SENSORS,
+                    Manifest.permission.ACTIVITY_RECOGNITION
+                    )
                 }
-            }
 
-            // L'UI peut maintenant réagir à la disponibilité de Health Connect
-            if (healthConnectAvailable) {
+                // 2. État de l'UI calculé au chargement
+                var uiState by remember {
+                    mutableStateOf(checkPermissionsState())
+                }
 
-                // Au démarrage de l'écran, on vérifie si on a déjà les permissions
-                LaunchedEffect(Unit) {
-                    if (hasPermissions(permissions)) {
-                        permissionsGranted = true
-                        activatePassiveMonitoring()
-                        // Lecture initiale
-                        readDebugData()
+                // 3. Le Launcher (Doit être déclaré inconditionnellement au début)
+                val foregroundLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestMultiplePermissions()
+                ) { result ->
+                    // Callback appelé au retour de la pop-up
+                    val allGranted = result.values.all { it }
+                    if (allGranted) {
+                        Log.d("Main", "Pop-up: Permissions accordées !")
+                        // On met à jour l'état pour passer à la suite (check background)
+                        uiState = checkPermissionsState()
                     } else {
-                        // Si non, on les demande
-                        permissionLauncher.launch(permissions)
+                        Log.e("Main", "Pop-up: Permissions refusées.")
+                        uiState = PermissionState.NEEDS_BODY_SENSORS
                     }
                 }
 
-                if (permissionsGranted) {
-                    // Affiche l'écran de Debug avec les données
-                    DebugScreen(
-                        heartRate = lastHeartRate,
-                        steps = todaySteps,
-                        onRefresh = { readDebugData() }
-                    )
-                } else {
-                    // Affiche un écran d'attente
-                    WearApp("Permissions requises...")
+
+                // 3. Action selon l'état
+                LaunchedEffect(uiState) {
+                    if (uiState == PermissionState.GRANTED) {
+                        activatePassiveMonitoring()
+                    }
                 }
 
-            } else {
-                WearApp("Health Connect requis")
+                // 5. Gestion du retour des paramètres (Cycle de vie OnResume simplifié)
+                val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+                DisposableEffect(lifecycleOwner) {
+                    val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                        if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                            // Au retour (ex: depuis les paramètres), on force une revérification
+                            // seulement si on n'est pas déjà OK pour éviter des clignotements
+                            if (uiState != PermissionState.GRANTED) {
+                                uiState = checkPermissionsState()
+                            }
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+                }
+
+                // --- UI ---
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colors.background),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when (uiState) {
+                        PermissionState.LOADING -> {
+                            Text("Chargement...")
+                        }
+                        PermissionState.GRANTED -> {
+                            // Ce bloc ne vit que tant que l'écran affiche "GRANTED"
+                            LaunchedEffect(Unit) {
+                                Log.d("Main", "Lancement du flux Actif (Foreground)")
+                                // On s'abonne au flux actif défini dans HealthServicesManager
+                                launch {
+                                    healthServicesManager.observeActiveHeartRate()
+                                        .collect { activeHeartRate ->
+                                            SensorDataRepository.latestHeartRate.value = activeHeartRate
+                                            Log.d("Main", "⚡ FC Active reçue: $activeHeartRate")
+                                        }
+                                }
+                                // Lancer la collecte PAS dans une autre coroutine séparée
+                                launch {
+                                    healthServicesManager.observeActiveStepCount()
+                                        .collect { activeStepCount ->
+                                            SensorDataRepository.latestSteps.value = activeStepCount
+                                            Log.d("Main", "Pas Actifs reçus: $activeStepCount")
+                                        }
+                                }
+                            }
+                            // ----------------------------------------------------------
+
+                            // Lecture des données depuis le Repository (mis à jour par le Passif ET l'Actif)
+                            val heartRate by SensorDataRepository.latestHeartRate.collectAsState()
+                            val steps by SensorDataRepository.latestSteps.collectAsState()
+
+                            DebugScreen(hr = heartRate, steps = steps)
+
+                        }
+                        PermissionState.NEEDS_ACTIVITY_RECOGNITION -> {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("Capteurs requis", color = Color.Red)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(onClick = { foregroundLauncher.launch(foregroundPermissions)
+                                    Log.d("Main", "Clic bouton -> Lancement Pop-up")}) {
+                                    Text("Autoriser")
+                                }
+                            }
+                        }
+
+                        PermissionState.NEEDS_BACKGROUND_SETTINGS -> {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("Autorisation en arrière-plan requise", color = Color.Yellow)
+                                Text("Ouvrez les paramètres pour 'Toujours autoriser'")
+                                Button(onClick = { openAppSystemSettings() }) {
+                                    Text("Ouvrir paramètres")
+                                }
+                            }
+                        }
+                        PermissionState.NEEDS_BODY_SENSORS -> {
+                            // CAS CRITIQUE : On doit envoyer l'utilisateur dans les paramètres
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(10.dp)) {
+                                Text("Mode 'Toujours' requis", color = Color.Yellow, textAlign = TextAlign.Center, fontSize = 12.sp)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Paramètres > Apps > Permissions > Capteurs > Toujours autoriser", fontSize = 10.sp, color = Color.Gray, textAlign = TextAlign.Center)
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Button(onClick = { openAppSystemSettings() }) {
+                                    Text("Ouvrir Paramètres", fontSize = 10.sp)
+                                }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+                                // Bouton de secours pour l'émulateur si l'API renvoie faux alors que c'est coché
+                                Button(
+                                    onClick = {
+                                        // Force le passage (HACK EMULATEUR)
+                                        activatePassiveMonitoring()
+                                        uiState = PermissionState.GRANTED
+                                    },
+                                    colors = ButtonDefaults.secondaryButtonColors(),
+                                    modifier = Modifier.height(30.dp)
+                                ) {
+                                    Text("J'ai déjà fait", fontSize = 10.sp)
+                                }
+                            }
+                        }
+
+                    }
+                }
             }
         }
     }
 
-    /**
-     * Fonction simple pour lire les dernières données dans Health Connect
-     * et vérifier que l'écriture s'est bien passée.
-     */
-    private fun readDebugData() {
-        lifecycleScope.launch {
-            try {
-                val client = HealthConnectClient.getOrCreate(this@WearMainActivity)
-                val now = Instant.now()
-                val startTime = now.minus(1, ChronoUnit.DAYS) // On regarde les dernières 24h
 
-                // 1. Lire la dernière FC
-                val hrResponse = client.readRecords(
-                    ReadRecordsRequest(
-                        recordType = HeartRateRecord::class,
-                        timeRangeFilter = TimeRangeFilter.between(startTime, now),
-                        ascendingOrder = false, // Le plus récent en premier
-                        pageSize = 1
-                    )
-                )
-                if (hrResponse.records.isNotEmpty()) {
-                    val lastRecord = hrResponse.records.first()
-                    // On prend le dernier échantillon de l'enregistrement
-                    val lastBpm = lastRecord.samples.lastOrNull()?.beatsPerMinute ?: 0
-                    lastHeartRate = "$lastBpm bpm"
-                } else {
-                    lastHeartRate = "Aucune donnée"
-                }
+    // Logique de vérification stricte selon la doc Android
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private fun checkPermissionsState(): PermissionState {
 
-                // 2. Lire les pas (total sur la période)
-                // Note: Pour avoir le total exact du jour, il faut agréger, mais ici on lit juste les records bruts pour debug
-                val stepsResponse = client.readRecords(
-                    androidx.health.connect.client.request.ReadRecordsRequest(
-                        recordType = StepsRecord::class,
-                        timeRangeFilter = TimeRangeFilter.between(startTime, now),
-                        ascendingOrder = false,
-                        pageSize = 100
-                    )
-                )
-                val totalSteps = stepsResponse.records.sumOf { it.count }
-                todaySteps = "$totalSteps pas (24h)"
+        val body = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.BODY_SENSORS
+        ) == PackageManager.PERMISSION_GRANTED
 
-            } catch (e: Exception) {
-                Log.e("Debug", "Erreur lecture", e)
-                lastHeartRate = "Erreur"
-                todaySteps = "Erreur"
-            }
+        if (!body) return PermissionState.NEEDS_BODY_SENSORS
+
+
+        val act = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.ACTIVITY_RECOGNITION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!act) return PermissionState.NEEDS_ACTIVITY_RECOGNITION
+
+
+        // Android 13 / Wear OS 4 → background requires system settings
+        val background = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.BODY_SENSORS_BACKGROUND
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!background) {
+            return PermissionState.NEEDS_BACKGROUND_SETTINGS
         }
+
+
+        return PermissionState.GRANTED
     }
 
-    private fun checkHealthConnectAvailability() {
-        val availability = HealthConnectClient.getSdkStatus(this, "com.google.android.apps.healthdata")
-        if (availability == HealthConnectClient.SDK_UNAVAILABLE) {
-            Log.d("WearMainActivity", "Health Connect n'est pas disponible sur cet appareil.")
-            healthConnectAvailable = false
-            return // Ne rien faire de plus
-        }
-        if (availability == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED) {
-            Log.d("WearMainActivity", "Une mise à jour de Health Connect est requise.")
-            healthConnectAvailable = false
-            // Ici, vous pourriez déclencher une action pour demander à l'utilisateur de mettre à jour
-            return
-        }
-        Log.d("WearMainActivity", "Health Connect est disponible.")
-        healthConnectAvailable = true
+    // Fonction officielle pour ouvrir les paramètres de l'app
+    private fun openAppSystemSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+        val uri = Uri.fromParts("package", packageName, null)
+        intent.data = uri
+        startActivity(intent)
     }
+
     private fun activatePassiveMonitoring() {
         lifecycleScope.launch {
-            // NOTE IMPORTANTE : Dans une vraie app, vous devez demander les permissions ici
-            // (android.permission.BODY_SENSORS) avec un requestPermissions launcher
-            // avant d'appeler registerForPassiveData.
-
             try {
-                // C'est ici qu'on dit au système : "Réveille PassiveDataService quand tu as des données"
                 healthServicesManager.registerForPassiveData()
-                Log.d("WearMainActivity", "Monitoring passif activé avec succès !")
+                Log.d("Main", "Monitoring passif activé !")
             } catch (e: Exception) {
-                Log.e("WearMainActivity", "Erreur lors de l'activation du monitoring passif", e)
+                Log.e("Main", "Erreur activation", e)
             }
         }
     }
-
-    private fun stopPassiveMonitoring() {
-        lifecycleScope.launch {
-            healthServicesManager.unregisterPassiveData()
-        }
-    }
-
-    // Fonction utilitaire pour vérifier si les permissions sont déjà là
-    private fun hasPermissions(permissions: Array<String>): Boolean {
-        return permissions.all {
-            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
-        }
-    }
-
-
-    override fun onDestroy() {
-        super.onDestroy()
-
-    }
-
 }
 
 // Les autres @Composables (WearApp, Greeting, DefaultPreview) restent inchangés.
 
 // --- NOUVEL ÉCRAN DE DEBUG ---
 @Composable
-fun DebugScreen(
-    heartRate: String,
-    steps: String,
-    onRefresh: () -> Unit
-) {
-    PllRunTheme {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colors.background)
-                .padding(top = 20.dp), // Padding pour éviter le menton de la montre
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "DEBUG HEALTH",
-                color = MaterialTheme.colors.primary,
-                style = MaterialTheme.typography.title3
-            )
+fun DebugScreen(hr: Double, steps: Long) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colors.background),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("TEST CAPTEURS", color = MaterialTheme.colors.primary)
+        Spacer(modifier = Modifier.height(10.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
+        Text("❤️ FC: ${hr.toInt()} bpm", fontSize = 20.sp)
+        Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = "❤️ FC: $heartRate",
-                color = Color.White,
-                fontSize = 16.sp
-            )
+        Text("👣 Pas: $steps", fontSize = 20.sp)
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "\uD83D\uDC5F Pas: $steps",
-                color = Color.White,
-                fontSize = 16.sp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Button(
-                onClick = onRefresh,
-                modifier = Modifier.height(40.dp)
-            ) {
-                Text("Rafraîchir")
-            }
-        }
+        Spacer(modifier = Modifier.height(15.dp))
+        Text("Bougez la montre ou\nsimulez des données !", fontSize = 10.sp, color = Color.Gray)
     }
 }
 

@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.androidx.core.i18n)
     implementation(libs.androidx.compose.runtime.livedata)
     implementation(libs.places)
+    implementation(libs.gms.play.services.wearable)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

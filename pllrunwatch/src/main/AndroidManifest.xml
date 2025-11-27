@@ -5,19 +5,19 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <uses-feature android:name="android.hardware.type.watch" />
-
-    <!-- Permissions Health Connect (Lecture/Écriture) -->
-    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
-    <uses-permission android:name="android.permission.health.WRITE_HEART_RATE" />
-    <uses-permission android:name="android.permission.health.READ_STEPS" />
-    <uses-permission android:name="android.permission.health.WRITE_STEPS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <uses-permission android:name="android.permission.BODY_SENSORS" />
+    <uses-permission android:name="android.permission.BODY_SENSORS_BACKGROUND" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- If using location-derived distance -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
         tools:ignore="CoarseFineLocation" />
+
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+
     <application
 
 
@@ -40,25 +40,11 @@
 
 
         </activity>
-        <!-- Activité requise pour Health Connect -->
-        <activity-alias
-            android:name="ViewPermissionActivity"
-            android:exported="true"
-            android:targetActivity=".presentation.WearMainActivity"
-            android:permission="android.permission.health.BETA_PERMISSION_RATIONALE">
-            <intent-filter>
-                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
-            </intent-filter>
-        </activity-alias>
+
         <service
             android:name=".presentation.health.PassiveDataService"
             android:permission="com.google.android.gms.permission.BIND_PASSIVE_LISTENER_SERVICE"
             android:exported="true" />
-
-
-        <uses-library
-            android:name="com.google.android.wearable"
-            android:required="true" />
 
         <!--
                Set to true if your app is Standalone, that is, it does not require the handheld

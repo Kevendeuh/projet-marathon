@@ -67,6 +67,7 @@ dependencies {
 
     // MISE À JOUR : Utilisez une version récente de play-services-nearby si possible
     implementation("com.google.android.gms:play-services-nearby:19.0.0")
+    implementation(libs.androidx.media3.common.ktx)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
