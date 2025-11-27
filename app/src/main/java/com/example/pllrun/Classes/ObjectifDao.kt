@@ -102,4 +102,59 @@ interface ObjectifDao {
     @Query("SELECT * FROM activite")
     fun getAllActivites(): LiveData<List<Activite>>
 
+    // ---------------------------------------------------------
+    // GESTION DE L'ENTITÉ CourseActivite
+    // ---------------------------------------------------------
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCourseActivite(courseActivite: CourseActivite)
+
+    @Update
+    suspend fun updateCourseActivite(courseActivite: CourseActivite)
+
+    @Delete
+    suspend fun deleteCourseActivite(courseActivite: CourseActivite)
+
+    // Récupération par ID de l'activité parente (LiveData - pour l'UI XML ou observeAsState)
+    @Query("SELECT * FROM course_activite WHERE activiteId = :activiteId")
+    fun getCourseActiviteByActiviteId(activiteId: Long): LiveData<CourseActivite?>
+
+    // Récupération par ID de l'activité parente (Flow - recommandé pour Compose)
+    @Query("SELECT * FROM course_activite WHERE activiteId = :activiteId")
+    fun getCourseActiviteByActiviteIdFlow(activiteId: Long): Flow<CourseActivite?>
+
+    // Récupération unique (Suspend - pour la logique métier ou les workers)
+    @Query("SELECT * FROM course_activite WHERE activiteId = :activiteId")
+    suspend fun getCourseActiviteByActiviteIdOnce(activiteId: Long): CourseActivite?
+
+    // Récupérer toutes les données de courses associées à un objectif (via jointure)
+// Utile pour calculer des stats globales sur un objectif de type "Course"
+    @Query("""SELECT CA.* FROM course_activite CA INNER JOIN activite A ON CA.activiteId = A.id WHERE A.objectifId = :objectifId""")
+    fun getAllCourseDetailsForObjectif(objectifId: Long): Flow<List<CourseActivite>>
+
+    /**
+     * TRANSACTION : Insère une activité ET ses détails de course en même temps.
+     * 1. Insère l'activité et récupère son nouvel ID.
+     * 2. Assigne cet ID à l'objet CourseActivite.
+     * 3. Insère le CourseActivite.
+     */
+    /**
+     * TRANSACTION : Insère une activité ET ses détails de course en même temps.
+     */
+    @Transaction
+    suspend fun insertActiviteWithCourseDetails(activite: Activite, courseDetails: CourseActivite) {
+        // On insère d'abord l'activité parente et on récupère l'ID généré
+        val activiteId = insertActiviteReturnId(activite)
+
+        // On crée une copie des détails avec le bon ID parent
+        val detailsWithId = courseDetails.copy(activiteId = activiteId)
+
+        // On insère les détails
+        insertCourseActivite(detailsWithId)
+    }
+
+    // Helper pour la transaction ci-dessus (si votre insertActivite actuel ne retourne rien)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertActiviteReturnId(activite: Activite): Long
+
 }

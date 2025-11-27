@@ -406,6 +406,74 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
         else               -> "Footing"        to "Z1–Z2 ; mobilité légère"
     }
 
+    // ---------------------------------------------------------
+    // GESTION DES DÉTAILS DE COURSE (CourseActivite)
+    // ---------------------------------------------------------
+
+    /**
+     * Insère uniquement les détails de course (si l'activité existe déjà).
+     */
+    fun insertCourseActivite(courseActivite: CourseActivite) {
+        viewModelScope.launch {
+            objectifDao.insertCourseActivite(courseActivite)
+        }
+    }
+
+    /**
+     * Transaction complète : Crée l'Activité parent ET les détails CourseActivite en une fois.
+     * Recalcule ensuite la progression de l'objectif associé.
+     */
+    fun addNewActiviteWithCourseDetails(activite: Activite, courseDetails: CourseActivite) {
+        viewModelScope.launch {
+            // Appel de la transaction dans le DAO
+            objectifDao.insertActiviteWithCourseDetails(activite, courseDetails)
+
+            // Mise à jour de la progression de l'objectif parent
+            if (activite.objectifId != null) {
+                recalculateObjectifProgress(activite.objectifId)
+            }
+        }
+    }
+
+    fun updateCourseActivite(courseActivite: CourseActivite) {
+        viewModelScope.launch {
+            objectifDao.updateCourseActivite(courseActivite)
+        }
+    }
+
+    fun deleteCourseActivite(courseActivite: CourseActivite) {
+        viewModelScope.launch {
+            objectifDao.deleteCourseActivite(courseActivite)
+        }
+    }
+
+    /**
+     * Récupère les détails de course pour une activité donnée (LiveData pour XML/ObserveAsState).
+     */
+    fun getCourseActiviteByActiviteId(activiteId: Long): LiveData<CourseActivite?> {
+        return objectifDao.getCourseActiviteByActiviteId(activiteId)
+    }
+
+    /**
+     * Récupère les détails de course pour une activité donnée (Flow pour Compose).
+     */
+    fun getCourseActiviteByActiviteIdFlow(activiteId: Long): Flow<CourseActivite?> {
+        return objectifDao.getCourseActiviteByActiviteIdFlow(activiteId)
+    }
+
+    /**
+     * Récupération unique (Suspend) pour utilisation dans la logique métier.
+     */
+    suspend fun getCourseActiviteByActiviteIdOnce(activiteId: Long): CourseActivite? {
+        return objectifDao.getCourseActiviteByActiviteIdOnce(activiteId)
+    }
+
+    /**
+     * Récupère la liste de tous les détails de course liés à un objectif spécifique.
+     */
+    fun getAllCourseDetailsForObjectif(objectifId: Long): Flow<List<CourseActivite>> {
+        return objectifDao.getAllCourseDetailsForObjectif(objectifId)
+    }
 
 
 

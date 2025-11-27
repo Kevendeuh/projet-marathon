@@ -8,7 +8,8 @@ import androidx.room.TypeConverters
 
 @Database(entities = [Utilisateur::class,
         Objectif::class,
-        Activite::class]
+        Activite::class,
+        CourseActivite::class]
     , version = 1, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class InventaireRoomDatabase : RoomDatabase() {

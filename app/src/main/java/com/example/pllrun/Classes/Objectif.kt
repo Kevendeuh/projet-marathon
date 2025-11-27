@@ -127,7 +127,53 @@ data class Activite(
     @ColumnInfo(name= "niveau")
     var niveau: NiveauExperience= NiveauExperience.DEBUTANT
 
+)
 
+@Entity(
+    tableName = "course_activite",
+    foreignKeys = [
+        ForeignKey(
+            entity = Activite::class,
+            parentColumns = ["id"],
+            childColumns = ["activiteId"],
+            onDelete = ForeignKey.CASCADE // Si l'activité parente est supprimée, supprime les détails de course
+        )
+    ],
+    indices = [androidx.room.Index(value = ["activiteId"], unique = true)] // Une seule CourseActivite par Activite
+)
+data class CourseActivite(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
 
+    @ColumnInfo(name = "activiteId")
+    val activiteId: Long, // Lien obligatoire vers l'activité parente
 
+    // --- Statistiques Globales ---
+    @ColumnInfo(name = "vitesse_moyenne")
+    val vitesseMoyenne: Double?, // en km/h
+
+    @ColumnInfo(name = "vitesse_max")
+    val vitesseMax: Double?, // en km/h
+
+    @ColumnInfo(name = "frequence_cardiaque_moyenne")
+    val bpmMoyen: Int?,
+
+    @ColumnInfo(name = "frequence_cardiaque_max")
+    val bpmMax: Int?,
+
+    // --- Découpage par Zones de Fréquence Cardiaque ---
+
+    // Option A : Distance parcourue par zone (ex: Zone 1 -> 2.5 km, Zone 2 -> 5.0 km)
+    // Nécessite un TypeConverter pour stocker une Map<Int, Double> ou une classe JSON
+    @ColumnInfo(name = "distance_par_zone_fc")
+    val distanceParZoneFc: Map<Int, Double> = emptyMap(),
+
+    // Option B : Temps passé par zone (ex: Zone 1 -> 15 min, Zone 2 -> 45 min)
+    // Nécessite aussi un TypeConverter pour stocker une Map<Int, Long> (ou Duration)
+    @ColumnInfo(name = "temps_par_zone_fc")
+    val tempsParZoneFc: Map<Int, Long> = emptyMap(), // Long = millisecondes ou secondes
+
+    // Optionnel : Liste des coordonnées GPS pour tracer la route (format JSON String généralement)
+    @ColumnInfo(name = "trace_gps_json")
+    val traceGpsJson: String? = null
 )
