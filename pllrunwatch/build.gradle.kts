@@ -11,7 +11,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.pllrunwatch"
+        applicationId = "com.example.pllrun"
         minSdk = 30
         targetSdk = 36
         versionCode = 1

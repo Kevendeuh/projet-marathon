@@ -29,6 +29,20 @@
             android:name=".ui.PlannerActivity"
             android:exported="true"
             android:label="Planner" />
+
+        <service
+            android:name=".util.DataLayerListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <!-- Le pathPrefix doit correspondre exactement à celui utilisé côté Montre -->
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/health/delta" />
+
+            </intent-filter>
+        </service>
     </application>
+
+
+
 
 </manifest>
