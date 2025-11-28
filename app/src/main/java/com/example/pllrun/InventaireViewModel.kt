@@ -1,6 +1,7 @@
 package com.example.pllrun
 
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -14,7 +15,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.LocalTime
 import java.time.DayOfWeek
 import java.time.Duration
@@ -29,9 +29,13 @@ import com.example.pllrun.util.TimeMapping.longNote
 import com.example.pllrun.util.TimeMapping.qualityNote
 import com.example.pllrun.util.TimeMapping.easyNote
 import com.example.pllrun.util.toDayOfWeek
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
+import java.time.LocalDate
 import java.time.ZoneId
 
 /**
@@ -484,7 +488,14 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
 
     // 1. LISTE COMPLÈTE (StateFlow)
     // Cette liste se mettra à jour automatiquement dès qu'une donnée arrive de la montre
-    val bpmHistory: StateFlow<List<HeartRateMeasurement>> = repository.getAllBpmMeasurements()
+    val bpmHistory: StateFlow<List<HeartRateMeasurement>> = getBpmForSpecificDay( LocalDate.now())
+        // 1. On intercepte les erreurs pour éviter le crash "NoSuchElementException"
+        .catch { e ->
+            Log.e("InventaireViewModel", "Erreur lors du chargement BPM", e)
+            emit(emptyList())
+        }
+        // 2. On s'assure que tout le travail DB se fait en IO
+        .flowOn(Dispatchers.IO)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

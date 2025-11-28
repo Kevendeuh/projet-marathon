@@ -50,12 +50,16 @@ import com.example.pllrun.components.ObjectifsListContent
 import java.time.LocalTime
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.MonitorHeart
+
 import androidx.compose.runtime.livedata.observeAsState
 import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.toInt
 import androidx.compose.ui.geometry.isEmpty
+import androidx.compose.ui.graphics.Shape
 import com.example.pllrun.Classes.Activite
 import com.example.pllrun.Classes.HeartRateMeasurement
 import com.example.pllrun.Classes.TypeObjectif
@@ -70,6 +74,8 @@ import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
+import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
+import com.patrykandpatrick.vico.core.cartesian.CartesianChart
 import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
@@ -80,6 +86,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.LocalDate
+import kotlin.math.round
 
 @Composable
 fun HubScreen(
@@ -101,7 +108,7 @@ fun HubScreen(
     val sleepMinutes by viewModel.getRecommendedSleepTime(utilisateurPrincipal?.id ?: -1).observeAsState(0L)
     val bedtime by viewModel.getRecommendedBedtime(utilisateurPrincipal?.id ?: -1).observeAsState(LocalTime.of(22, 0))
     val nutriments by viewModel.getRecommendedNutriments(utilisateurPrincipal?.id ?: -1).observeAsState(ApportsNutritionnels(0F,0F,0F,0F))
-
+    val bpmHistory by viewModel.bpmHistory.collectAsState(initial = emptyList())
     // --- 2. FORMATAGE DES DONNÉES ---
     val (tempsSommeilSuggere, heureCoucheSuggeree) = remember(sleepMinutes, bedtime) {
         val formattedSleepTime = if (sleepMinutes > 0) "${sleepMinutes / 60}h ${sleepMinutes % 60}min" else "N/A"
@@ -287,6 +294,25 @@ fun HubScreen(
                         }
                     }
                 }
+
+                item {
+                    TaskCard(
+                        title = "Graphe fréquence cardiaque",
+                        onThreeDotsClick = {},
+                        modifier = Modifier.weight(1f),
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.MonitorHeart,
+                                contentDescription = "Icône de nourriture",
+                                tint = Color(0xFFFF751F)
+                            )
+                        }
+                    ){
+                        HeartRateGraphContent(data = bpmHistory)
+                    }
+                }
+                item { Spacer(modifier = Modifier.height(20.dp)) }
+
             }
         }
 
@@ -508,20 +534,38 @@ fun HeartRateGraphContent(
     data: List<HeartRateMeasurement>,
     modifier: Modifier = Modifier
 ) {
+
     // 1. Créer un "Producer" pour les données de Vico
     val modelProducer = remember { CartesianChartModelProducer() }
 
     // 2. Charger les données de manière asynchrone
     LaunchedEffect(data) {
-        withContext(Dispatchers.Default) {
-            modelProducer.runTransaction {
-                // On mappe vos objets HeartRateMeasurement vers des séries de colonnes
-                // x = timestamp (ou index), y = bpm
-                columnSeries {
-                    series(
-                        x = data.map { it.timestamp.toDouble() }, // Ou utilisez un index simple 0..n
-                        y = data.map { it.bpm },
-                    )
+        if (data.isNotEmpty()) {
+            withContext(Dispatchers.Default) {
+                val sortedData = data.sortedBy { it.timestamp }
+                modelProducer.runTransaction {
+                    // On mappe vos objets HeartRateMeasurement vers des séries de colonnes
+                    // x = timestamp (ou index), y = bpm
+                    columnSeries {
+                        series(
+                            // AXE X : On place les points précisément à leur heure (ex: 14h30 = 14.5)
+                            x = sortedData.map { measurement ->
+                                val instant = java.time.Instant.ofEpochMilli(measurement.timestamp)
+                                val zdt = java.time.ZonedDateTime.ofInstant(
+                                    instant,
+                                    java.time.ZoneId.systemDefault()
+                                )
+
+                                // Calcul de l'heure décimale
+                                val decimalHour = zdt.hour + (zdt.minute / 60.0)
+
+                                // CORRECTION : On arrondit à 2 décimales pour éviter l'erreur "too precise"
+                                // (ex: 14.333333 -> 14.33)
+                                (decimalHour * 100).toInt() / 100.0
+                            },
+                            y = data.map { it.bpm },
+                        )
+                    }
                 }
             }
         }
@@ -531,20 +575,42 @@ fun HeartRateGraphContent(
     if (data.isNotEmpty()) {
         CartesianChartHost(
             chart = rememberCartesianChart(
+                // --- C'EST ICI QUE C'ETAIT MANQUANT ---
+                // Il faut dire au graphique de dessiner des COLONNES
+                rememberColumnCartesianLayer(
+                    ColumnCartesianLayer.ColumnProvider.series(
+                        rememberLineComponent(
+                            thickness = 8.dp,
+                            shape = com.patrykandpatrick.vico.core.common.shape.Shape.Rectangle
+                        )
+                    )
+                ),
+                // --------------------------------------
 
-                // Axes (Optionnel, vous pouvez les retirer si vous voulez juste les barres)
                 startAxis = VerticalAxis.rememberStart(),
-                bottomAxis = HorizontalAxis.rememberBottom(),
+                // --- AXE X (Abscisses - FIXE 0h-23h) ---
+                bottomAxis = HorizontalAxis.rememberBottom(
+                    // 1. Formatter : Convertit le chiffre (0, 6, 12...) en texte ("0h", "6h"...)
+                    valueFormatter = { _, value, _ ->
+                        "${value.toInt()}h"
+                    },
+                    // 2. ItemPlacer : C'est ici qu'on force l'affichage régulier
+                    // On demande un label toutes les 4 heures (0h, 4h, 8h...) pour ne pas surcharger
+                    // et un "shift" de 1 pour bien gérer les bords.
+                    itemPlacer = remember {
+                        HorizontalAxis.ItemPlacer.aligned(spacing = { 4 }, addExtremeLabelPadding = true)
+                    }
+                ),
             ),
             modelProducer = modelProducer,
             modifier = modifier,
-            // Active le scroll horizontal et le zoom
             zoomState = rememberVicoZoomState(zoomEnabled = false)
         )
     } else {
-        // Gestion du cas vide
         Text("Pas de données")
     }
+
+
 }
 
 
