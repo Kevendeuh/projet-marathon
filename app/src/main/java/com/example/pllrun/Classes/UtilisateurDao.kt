@@ -39,4 +39,6 @@ interface UtilisateurDao {
 
     @Query("SELECT * from utilisateur WHERE id = :id LIMIT 1")
     suspend fun getUtilisateurNow(id: Long): Utilisateur?
+
+
 }

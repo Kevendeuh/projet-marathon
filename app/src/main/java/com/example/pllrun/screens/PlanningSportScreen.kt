@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
@@ -141,18 +142,32 @@ fun PlanningSportScreen(viewModel: InventaireViewModel,
 
     // 3. Dialogue d'édition d'activité
     activiteToEdit?.let { activite ->
+        // Astuce : Chargez les détails spécifiques AVANT d'ouvrir le dialogue ou observez-les
+        // Pour simplifier ici, imaginons que vous les ayez récupérés via le ViewModel
+        val courseDetails by viewModel.getCourseActiviteByActiviteIdFlow(activite.id).collectAsState(initial = null)
+
         ActivityDialog(
             act = activite,
-            onDismiss = {
-                activiteToEdit = null // Ferme le dialogue
+            initialCourseDetails = courseDetails, // On passe les données existantes
+            isCreationMode = false,
+            onDismiss = { activiteToEdit = null },
+            onDelete = { toDelete ->
+                viewModel.deleteActivite(toDelete)
+                activiteToEdit = null
             },
-            onSave = { activiteMiseAJour ->
-                viewModel.updateActivite(activiteMiseAJour)
-                activiteToEdit = null // Ferme le dialogue
-            },
-            onDelete = { activiteASupprimer ->
-                viewModel.deleteActivite(activiteASupprimer)
-                activiteToEdit = null // Ferme le dialogue
+            onSave = { activiteMaj, detailsCourseMaj ->
+                viewModel.updateActivite(activiteMaj)
+
+                if (detailsCourseMaj != null) {
+                    // Si l'ID existe déjà, update, sinon insert
+                    if (detailsCourseMaj.id != 0L) {
+                        viewModel.updateCourseActivite(detailsCourseMaj)
+                    } else {
+                        // Cas rare où on ajoute des détails à une activité qui n'en avait pas
+                        viewModel.insertCourseActivite(detailsCourseMaj.copy(activiteId = activiteMaj.id))
+                    }
+                }
+                activiteToEdit = null
             }
         )
     }

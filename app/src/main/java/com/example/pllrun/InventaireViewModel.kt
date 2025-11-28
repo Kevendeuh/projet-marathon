@@ -29,12 +29,19 @@ import com.example.pllrun.util.TimeMapping.longNote
 import com.example.pllrun.util.TimeMapping.qualityNote
 import com.example.pllrun.util.TimeMapping.easyNote
 import com.example.pllrun.util.toDayOfWeek
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import java.time.ZoneId
 
 /**
  * View Model to keep a reference to the Inventory repository and an up-to-date list of all items.
  *
  */
-class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private val objectifDao: ObjectifDao,private val repository: InventaireRepository) : ViewModel() {
+class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
+                          private val objectifDao: ObjectifDao,
+                          private val repository: InventaireRepository)
+    : ViewModel() {
 
     /**
      * Inserts the new Utilisateur into database.
@@ -475,14 +482,53 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao, private va
         return objectifDao.getAllCourseDetailsForObjectif(objectifId)
     }
 
+    // 1. LISTE COMPLÈTE (StateFlow)
+    // Cette liste se mettra à jour automatiquement dès qu'une donnée arrive de la montre
+    val bpmHistory: StateFlow<List<HeartRateMeasurement>> = repository.getAllBpmMeasurements()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
+    // 2. INSERTION (Appelé par le Service ou pour test)
+    fun saveHeartRate(bpm: Int, timestamp: Long) {
+        viewModelScope.launch {
+            val measurement = HeartRateMeasurement(bpm = bpm, timestamp = timestamp)
+            repository.insertBpm(measurement)
+        }
+    }
+
+    // 3. RÉCUPÉRER PAR JOUR (Helper avec LocalDate)
+    // Prend une date simple (ex: 2025-11-28) et calcule les timestamps start/end automatiquement
+    fun getBpmForSpecificDay(date: LocalDate): Flow<List<HeartRateMeasurement>> {
+        val zoneId = ZoneId.systemDefault()
+
+        // Début de la journée (00:00:00)
+        val startTimestamp = date.atStartOfDay(zoneId).toInstant().toEpochMilli()
+
+        // Fin de la journée (23:59:59.999)
+        val endTimestamp = date.atTime(LocalTime.MAX).atZone(zoneId).toInstant().toEpochMilli()
+
+        return repository.getBpmMeasurementsForDay(startTimestamp, endTimestamp)
+    }
+
+    // 4. SUPPRESSION
+    fun clearAllHeartRateData() {
+        viewModelScope.launch {
+            repository.deleteAllBpm()
+        }
+    }
 
 }
 
 /**
  * Factory class to instantiate the [ViewModel] instance.
  */
-class InventaireViewModelFactory(private val utilisateurDao: UtilisateurDao, private val objectifDao: ObjectifDao, private val InventaireRepository: InventaireRepository) : ViewModelProvider.Factory {
+class InventaireViewModelFactory(private val utilisateurDao: UtilisateurDao,
+                                 private val objectifDao: ObjectifDao,
+                                 private val InventaireRepository: InventaireRepository)
+    : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(InventaireViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
@@ -491,4 +537,6 @@ class InventaireViewModelFactory(private val utilisateurDao: UtilisateurDao, pri
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
+
+
 

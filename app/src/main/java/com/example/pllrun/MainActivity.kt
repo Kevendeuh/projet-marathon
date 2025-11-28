@@ -77,7 +77,7 @@ class MainActivity : ComponentActivity() {
     // This connects the UI to your database logic.
     private val viewModel: InventaireViewModel by viewModels {
         val database = InventaireRoomDatabase.getDatabase(applicationContext)
-        val repository = InventaireRepository(InventaireRoomDatabase.getDatabase(this).objectifDao(),InventaireRoomDatabase.getDatabase(this).utilisateurDao())
+        val repository = InventaireRepository(InventaireRoomDatabase.getDatabase(this).objectifDao(),InventaireRoomDatabase.getDatabase(this).utilisateurDao(),InventaireRoomDatabase.getDatabase(this).measurementDao() )
         //val database = (application as PllRunApplication).database
         InventaireViewModelFactory(
             utilisateurDao = InventaireRoomDatabase.getDatabase(this).utilisateurDao(),

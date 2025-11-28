@@ -52,6 +52,9 @@ android {
 
 
 dependencies {
+    //vico graphs
+    implementation("com.patrykandpatrick.vico:compose-m3:2.3.6") // Ou dernière version stable
+    implementation("com.patrykandpatrick.vico:core:2.3.6")
     // Room
     // 3. MODIFIER LES DÉPENDANCES ROOM
     // Utiliser les variables pour la cohérence

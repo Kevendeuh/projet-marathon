@@ -113,6 +113,7 @@ fun AppNavHost(
                 onAddGoal = {
                     navController.navigate(AppScreen.Objectif.name)
                 },
+
                 viewModel = viewModel,
 
             )

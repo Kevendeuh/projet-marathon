@@ -3,7 +3,6 @@ package com.example.pllrun.Classes
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import java.time.DayOfWeek
 import java.time.LocalDate
 
 /**
@@ -62,8 +61,8 @@ data class Utilisateur(
     var niveauExperience: NiveauExperience = NiveauExperience.DEBUTANT,
     @ColumnInfo(name = "joursEntrainementDisponibles")
     var joursEntrainementDisponibles: List<JourSemaine> = emptyList(),
-
     )
+
 
 
 /**
@@ -93,4 +92,5 @@ enum class JourSemaine {
 
 }
 
-// nom: String = "", prenom: String = "", dateDeNaissance: LocalDate? = null, sexe: Sexe = Sexe.NON_SPECIFIE, poids: Double = 0.0, taille: Int = 0, vma: Double? = 0.0, fcm: Int? = 0,fcr: Int? = 0,niveauExperience: NiveauExperience = NiveauExperience.DEBUTANT,joursEntrainementDisponibles: List<JourSemaine> = emptyList(), objectifs: MutableList<Objectif> = mutableListOf(),
+
+

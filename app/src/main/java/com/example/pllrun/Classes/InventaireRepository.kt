@@ -11,8 +11,28 @@ import com.example.pllrun.calculator.SleepGenerator
 @OptIn(ExperimentalCoroutinesApi::class)
 class InventaireRepository(
     private val objectifDao: ObjectifDao,
-    private val utilisateurDao: UtilisateurDao
+    private val utilisateurDao: UtilisateurDao,
+    private val heartRateMeasurementDao: HeartRateMeasurementDao
 ) {
+    // Insérer une mesure
+    suspend fun insertBpm(measurement: HeartRateMeasurement) {
+        heartRateMeasurementDao.insertBpm(measurement)
+    }
+
+    // Récupérer tout l'historique (Flow pour mise à jour temps réel)
+    fun getAllBpmMeasurements(): Flow<List<HeartRateMeasurement>> {
+        return heartRateMeasurementDao.getAllBpmMeasurements()
+    }
+
+    // Récupérer les données d'un jour précis
+    fun getBpmMeasurementsForDay(start: Long, end: Long): Flow<List<HeartRateMeasurement>> {
+        return heartRateMeasurementDao.getBpmMeasurementsForDay(start, end)
+    }
+
+    // Supprimer tout
+    suspend fun deleteAllBpm() {
+        heartRateMeasurementDao.deleteAllBpm()
+    }
 
     // --- TEMPS DE SOMMEIL ---
     fun getRecommendedSleepTimeFlow(utilisateurId: Long): Flow<Long> {

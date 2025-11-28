@@ -5,10 +5,29 @@ import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.WearableListenerService
 import android.util.Log
-import androidx.compose.ui.graphics.vector.path
-import androidx.compose.ui.input.key.type
+import com.example.pllrun.Classes.HeartRateMeasurement
+import com.example.pllrun.Classes.InventaireRepository
+import com.example.pllrun.Classes.InventaireRoomDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class DataLayerListenerService : WearableListenerService() {
+    // Injectez votre Repository (ou DAO) ici
+    private val inventaireRepository: InventaireRepository by lazy {
+        // 1. Récupérer l'instance de la base de données (Singleton)
+        val database = InventaireRoomDatabase.getDatabase(applicationContext)
+
+        // 2. Créer le repository manuellement en lui passant les DAOs
+        InventaireRepository(
+            utilisateurDao = database.utilisateurDao(),
+            objectifDao = database.objectifDao(),
+            heartRateMeasurementDao = database.measurementDao() // Assurez-vous d'avoir ajouté cette méthode dans la DB
+        )
+    }
+    // Créez un scope pour lancer des coroutines (car écrire en BDD est asynchrone)
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     override fun onDataChanged(dataEvents: DataEventBuffer) {
         super.onDataChanged(dataEvents)
@@ -23,7 +42,11 @@ class DataLayerListenerService : WearableListenerService() {
 
                     Log.d("PhoneReceiver", "Reçu FC: $heartRate bpm à $timestamp")
 
-                    // TODO: Diffuser cette info à votre UI (via LocalBroadcastManager, SharedFlow, ou EventBus)
+                    // --- SAUVEGARDE EN BASE DE DONNÉES ---
+                    serviceScope.launch {
+                        val newMeasure = HeartRateMeasurement(bpm = heartRate, timestamp = timestamp)
+                        inventaireRepository.insertBpm(newMeasure)
+                    }
                 }
             }
         }

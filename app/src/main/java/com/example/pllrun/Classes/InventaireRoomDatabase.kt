@@ -9,13 +9,16 @@ import androidx.room.TypeConverters
 @Database(entities = [Utilisateur::class,
         Objectif::class,
         Activite::class,
-        CourseActivite::class]
-    , version = 1, exportSchema = false)
+        CourseActivite::class,
+        HeartRateMeasurement::class]
+    , version = 2, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class InventaireRoomDatabase : RoomDatabase() {
 
     abstract fun utilisateurDao(): UtilisateurDao
     abstract fun objectifDao(): ObjectifDao
+    abstract fun measurementDao(): HeartRateMeasurementDao
+
     companion object {
         @Volatile
         private var INSTANCE: InventaireRoomDatabase? = null
@@ -26,7 +29,7 @@ abstract class InventaireRoomDatabase : RoomDatabase() {
                     InventaireRoomDatabase::class.java,
                     "Inventaire_database"
                 )
-                    .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigration(false)
                     .build()
                 INSTANCE = instance
                 return instance

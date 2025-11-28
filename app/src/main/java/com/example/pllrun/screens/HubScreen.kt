@@ -57,11 +57,29 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.isEmpty
 import com.example.pllrun.Classes.Activite
+import com.example.pllrun.Classes.HeartRateMeasurement
+import com.example.pllrun.Classes.TypeObjectif
+import com.example.pllrun.Classes.NiveauExperience
 import com.example.pllrun.calculator.ApportsNutritionnels
 import com.example.pllrun.components.ActivityDialog
 import com.example.pllrun.components.ActivityRow
-import java.time.LocalDate
 
+import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
+import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
+import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
+import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
+import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
+import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
+import com.patrykandpatrick.vico.core.cartesian.data.columnSeries
+import com.patrykandpatrick.vico.core.cartesian.layer.ColumnCartesianLayer
+import com.patrykandpatrick.vico.core.cartesian.layer.ColumnCartesianLayer.ColumnProvider.Companion.series
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.time.Duration
+import java.time.LocalDate
 
 @Composable
 fun HubScreen(
@@ -73,6 +91,8 @@ fun HubScreen(
     // --- GESTION DES ÉTATS DE L'UI POUR LES DIALOGUES ---
     var objectifToEditId by remember { mutableStateOf<Long?>(null) }
     var activiteToEdit by remember { mutableStateOf<Activite?>(null) } // État pour le dialogue d'activité
+    // AJOUT : État pour afficher la popup de création d'activite
+    var showAddActivityDialog by remember { mutableStateOf(false) }
 
     val utilisateurPrincipal by viewModel.getFirstUtilisateur().observeAsState(initial = null)
     val activitesDuJour by viewModel.getActivitesForDay(LocalDate.now()).observeAsState(initial = emptyList())
@@ -270,28 +290,56 @@ fun HubScreen(
             }
         }
 
-        // --- 2. BOUTON FLOTTANT ---
-        Button(
-            onClick = onAddGoal,
+        // --- 2. BOUTONS FLOTTANTS (COLUMN EN BAS) ---
+        Column(
             modifier = Modifier
-                .align(Alignment.BottomCenter) // Aligne le bouton en bas au centre de la Box
+                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(start = 24.dp, end = 24.dp, bottom = 24.dp) // Espace autour du bouton
-                .height(56.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer// Orange
-            ),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp) // Ombre du bouton
+                .padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp) // Espace entre les boutons
         ) {
-            Text(
-                text = "Ajouter Objectif",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color =MaterialTheme.colorScheme.onPrimary
-            )
+            // BOUTON 1 : Ajouter Activité
+            Button(
+                onClick = { showAddActivityDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer, // Couleur différente (ex: secondaire)
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+            ) {
+                Text(
+                    text = "Ajouter Activité",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // BOUTON 2 : Ajouter Objectif
+            Button(
+                onClick = onAddGoal,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+            ) {
+                Text(
+                    text = "Ajouter Objectif",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
         }
+
     }
 
 
@@ -308,19 +356,71 @@ fun HubScreen(
 
     // 2. Dialogue d'édition d'activité
     activiteToEdit?.let { activite ->
+        // Astuce : Chargez les détails spécifiques AVANT d'ouvrir le dialogue ou observez-les
+        // Pour simplifier ici, imaginons que vous les ayez récupérés via le ViewModel
+        val courseDetails by viewModel.getCourseActiviteByActiviteIdFlow(activite.id).collectAsState(initial = null)
+
         ActivityDialog(
             act = activite,
-            onDismiss = {
-                activiteToEdit = null // Ferme le dialogue
+            initialCourseDetails = courseDetails, // On passe les données existantes
+            isCreationMode = false,
+            onDismiss = { activiteToEdit = null },
+            onDelete = { toDelete ->
+                viewModel.deleteActivite(toDelete)
+                activiteToEdit = null
             },
-            onSave = { activiteMiseAJour ->
-                viewModel.updateActivite(activiteMiseAJour)
-                activiteToEdit = null // Ferme le dialogue
-            },
-            onDelete = { activiteASupprimer ->
-                viewModel.deleteActivite(activiteASupprimer)
-                activiteToEdit = null // Ferme le dialogue
+            onSave = { activiteMaj, detailsCourseMaj ->
+                viewModel.updateActivite(activiteMaj)
+
+                if (detailsCourseMaj != null) {
+                    // Si l'ID existe déjà, update, sinon insert
+                    if (detailsCourseMaj.id != 0L) {
+                        viewModel.updateCourseActivite(detailsCourseMaj)
+                    } else {
+                        // Cas rare où on ajoute des détails à une activité qui n'en avait pas
+                        viewModel.insertCourseActivite(detailsCourseMaj.copy(activiteId = activiteMaj.id))
+                    }
+                }
+                activiteToEdit = null
             }
+        )
+    }
+
+
+    // 3. AJOUT : Dialogue de CRÉATION d'activité
+    if (showAddActivityDialog) {
+        // On crée une activité vide par défaut (ID = 0 pour que Room sache qu'il faut insérer)
+        // Vérifiez que ce constructeur correspond bien à votre Data Class Activite
+        val newActivity = Activite(
+            id = 0,
+            objectifId = null, // Pas d'objectif lié par défaut
+            date = LocalDate.now(),
+            heureDeDebut = LocalTime.now(),
+            typeActivite = TypeObjectif.COURSE, // Type par défaut (à adapter selon votre Enum)
+            estComplete = false,
+            nom = "",
+            description = TypeObjectif.COURSE.description,
+            distanceEffectuee =10.0,
+            tempsEffectue =  Duration.ofMinutes(30),
+            niveau = NiveauExperience.DEBUTANT
+        )
+
+        ActivityDialog(
+            act = newActivity,
+            onDismiss = { showAddActivityDialog = false },
+            onSave = { activiteCreee, detailsCourse ->
+                // C'est ici que la magie opère : le ViewModel gère l'insertion intelligente
+                if (detailsCourse != null) {
+                    // Transaction Activité + Course
+                    viewModel.addNewActiviteWithCourseDetails(activiteCreee, detailsCourse)
+                } else {
+                    // Activité simple
+                    viewModel.addNewActivite(activiteCreee)
+                }
+                showAddActivityDialog = false
+            },
+            // Pas de suppression possible lors de la création
+            onDelete = { }
         )
     }
 }
@@ -382,7 +482,10 @@ fun TaskCard(
                     modifier = Modifier
                         .size(32.dp)
                         .clickable(onClick = onThreeDotsClick)
-                        .background( MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(6.dp)),
+                        .background(
+                            MaterialTheme.colorScheme.primaryContainer,
+                            RoundedCornerShape(6.dp)
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -396,8 +499,52 @@ fun TaskCard(
             }
         }
     }
-    
 
+
+}
+
+@Composable
+fun HeartRateGraphContent(
+    data: List<HeartRateMeasurement>,
+    modifier: Modifier = Modifier
+) {
+    // 1. Créer un "Producer" pour les données de Vico
+    val modelProducer = remember { CartesianChartModelProducer() }
+
+    // 2. Charger les données de manière asynchrone
+    LaunchedEffect(data) {
+        withContext(Dispatchers.Default) {
+            modelProducer.runTransaction {
+                // On mappe vos objets HeartRateMeasurement vers des séries de colonnes
+                // x = timestamp (ou index), y = bpm
+                columnSeries {
+                    series(
+                        x = data.map { it.timestamp.toDouble() }, // Ou utilisez un index simple 0..n
+                        y = data.map { it.bpm },
+                    )
+                }
+            }
+        }
+    }
+
+    // 3. Afficher le graphique
+    if (data.isNotEmpty()) {
+        CartesianChartHost(
+            chart = rememberCartesianChart(
+
+                // Axes (Optionnel, vous pouvez les retirer si vous voulez juste les barres)
+                startAxis = VerticalAxis.rememberStart(),
+                bottomAxis = HorizontalAxis.rememberBottom(),
+            ),
+            modelProducer = modelProducer,
+            modifier = modifier,
+            // Active le scroll horizontal et le zoom
+            zoomState = rememberVicoZoomState(zoomEnabled = false)
+        )
+    } else {
+        // Gestion du cas vide
+        Text("Pas de données")
+    }
 }
 
 

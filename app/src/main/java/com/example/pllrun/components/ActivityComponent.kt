@@ -22,6 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import java.time.format.DateTimeFormatter
 import com.example.pllrun.Classes.Activite
+import com.example.pllrun.Classes.CourseActivite
+import com.example.pllrun.Classes.NiveauExperience
+import com.example.pllrun.Classes.TypeObjectif
 import java.time.Duration
 
 @Composable
@@ -92,8 +95,10 @@ fun ActivityRow(
 @Composable
 fun ActivityDialog(
     act: Activite,
+    initialCourseDetails: CourseActivite? = null,
     onDismiss: () -> Unit,
-    onSave: (Activite) -> Unit,
+    isCreationMode: Boolean = false,
+    onSave: (Activite, CourseActivite?) -> Unit,
     onDelete: (Activite) -> Unit
 ) {
     // --- 1. ÉTATS DU FORMULAIRE ---
@@ -108,6 +113,10 @@ fun ActivityDialog(
     var niveau by remember(act) { mutableStateOf(act.niveau) }
     var typeActivite by remember(act) { mutableStateOf(act.typeActivite) }
 
+    // État pour la Course
+    var courseDetailsState by remember(initialCourseDetails) {
+        mutableStateOf(initialCourseDetails)
+    }
     // --- 2. ÉTATS POUR LES PICKERS ---
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -125,7 +134,7 @@ fun ActivityDialog(
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Text(
-                    text = "Modifier l'Activité",
+                    text = if (isCreationMode) "Nouvelle Activité" else "Modifier l'Activité",
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.padding(bottom = 20.dp)
                 )
@@ -157,20 +166,20 @@ fun ActivityDialog(
                         // Champ Date
 
                         ReadOnlyField(
-                                value = date.format(dateFormatter),
-                                label = "Date",
-                                modifier = Modifier.weight(1f),
-                                onClick = { showDatePicker = true }
+                            value = date.format(dateFormatter),
+                            label = "Date",
+                            modifier = Modifier.weight(1f),
+                            onClick = { showDatePicker = true }
                         )
 
                         // Champ Heure
                         ReadOnlyField(
-                                value = heureDeDebut.format(timeFormatter),
-                                label = "Heure",
-                                modifier =Modifier.weight(1f),
-                                onClick = { showTimePicker = true }
+                            value = heureDeDebut.format(timeFormatter),
+                            label = "Heure",
+                            modifier = Modifier.weight(1f),
+                            onClick = { showTimePicker = true }
 
-                            )
+                        )
 
                     }
 
@@ -192,42 +201,102 @@ fun ActivityDialog(
                         )
                     }
 
-                    // --- SÉLECTEURS ENUM (Niveau et Type) ---
-                    // (Exemple simple, à remplacer par des Dropdown si nécessaire)
-                    // Pour la simplicité, on ne les rend pas éditables ici, mais vous pouvez ajouter des DropdownMenuBox.
+                    // --- SÉLECTEUR DE TYPE D'ACTIVITÉ (Dropdown) ---
+                    var expandedType by remember { mutableStateOf(false) }
+
+                    ExposedDropdownMenuBox(
+                        expanded = expandedType,
+                        onExpandedChange = { expandedType = !expandedType },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = typeActivite.name, // Affiche le nom de l'enum (ex: COURSE)
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Type d'activité") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedType) },
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = expandedType,
+                            onDismissRequest = { expandedType = false }
+                        ) {
+                            // On parcourt toutes les valeurs de l'enum TypeObjectif
+                            TypeObjectif.entries.forEach { type ->
+                                DropdownMenuItem(
+                                    text = { Text(text = type.name) },
+                                    onClick = {
+                                        typeActivite = type
+                                        // Si on passe sur AUTRE ou un type sans détails, on peut vouloir nettoyer courseDetailsState
+                                        // Mais pour l'instant, le SpecificActivityFormContent gère la création si nécessaire.
+                                        expandedType = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+// --- SÉLECTEUR DE NIVEAU (Dropdown) ---
+
+                    ExposedDropdownMenuComponent(
+                        label = "Niveau",
+                        items = NiveauExperience.values().map { it.name },
+                        selectedItem = niveau.name,
+                        onItemSelected = { selectedString ->
+                            niveau = NiveauExperience.valueOf(selectedString)
+                        }
+                    )
 
                     // CHAMP VALIDATION
                     ValidationField(
                         isValid = estComplete,
                         onStateChange = { estComplete = it }
                     )
+                    SpecificActivityFormContent(
+                        type = typeActivite,
+                        courseDetails = courseDetailsState,
+                        onCourseDetailsChange = { updated -> courseDetailsState = updated }
+                    )
+
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // --- BOUTONS D'ACTION ---
+                    ActionButtons(
+                        isCreationMode = isCreationMode,
+                        activite = act,
+                        onSave = {
+                            val updatedActivite = act.copy(
+                                nom = nom,
+                                description = description,
+                                date = date,
+                                heureDeDebut = heureDeDebut,
+                                distanceEffectuee = distance.toDoubleOrNull()
+                                    ?: act.distanceEffectuee,
+                                tempsEffectue = Duration.ofMinutes(
+                                    tempsEffectueMinutes.toLongOrNull()
+                                        ?: act.tempsEffectue.toMinutes()
+                                ),
+                                estComplete = estComplete,
+                                niveau = niveau,
+                                typeActivite = typeActivite
+                            )
+                            val specificCourseData =
+                                if (typeActivite == TypeObjectif.COURSE) courseDetailsState else null
+                            onSave(updatedActivite, specificCourseData)
+                        },
+                        onDelete = onDelete,
+                        onDismiss = onDismiss
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // --- BOUTONS D'ACTION ---
-                ActionButtons(
-                    activite = act,
-                    onSave = {
-                        val updatedActivite = act.copy(
-                            nom = nom,
-                            description = description,
-                            date = date,
-                            heureDeDebut = heureDeDebut,
-                            distanceEffectuee = distance.toDoubleOrNull() ?: act.distanceEffectuee,
-                            tempsEffectue = Duration.ofMinutes(tempsEffectueMinutes.toLongOrNull() ?: act.tempsEffectue.toMinutes()),
-                            estComplete = estComplete,
-                            niveau = niveau,
-                            typeActivite = typeActivite
-                        )
-                        onSave(updatedActivite)
-                    },
-                    onDelete = onDelete,
-                    onDismiss = onDismiss
-                )
+                }
             }
         }
-    }
+
 
     // --- PICKERS DE DATE ET HEURE ---
     if (showDatePicker) {
@@ -256,12 +325,14 @@ fun ActivityDialog(
  */
 @Composable
 private fun ActionButtons(
+    isCreationMode : Boolean=false,
     activite: Activite,
     onSave: () -> Unit,
     onDelete: (Activite) -> Unit,
     onDismiss: () -> Unit
 ) {
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -337,4 +408,56 @@ private fun DeleteActivityConfirmationDialog(
             }
         }
     )
+}
+
+/**
+ * Ce composable agit comme un "Switch" géant.
+ * Il décide quel formulaire spécifique afficher en fonction du TypeObjectif sélectionné.
+ */
+@Composable
+fun SpecificActivityFormContent(
+    type: TypeObjectif,
+    // On passe tous les états spécifiques potentiels ici (nullable)
+    courseDetails: CourseActivite?,
+    // Callbacks pour chaque type
+    onCourseDetailsChange: (CourseActivite) -> Unit
+    // Pour le futur : onNatationDetailsChange, onMuscuDetailsChange...
+) {
+    when (type) {
+        TypeObjectif.COURSE -> {
+            // Si l'objet est null (ex: on passe de Vélo à Course), on en crée un vide
+            val safeDetails = courseDetails ?: CourseActivite(
+                activiteId = 0,
+                vitesseMoyenne =10.0,
+                vitesseMax = 13.0,
+                bpmMoyen = 130,
+                bpmMax = 200,
+                distanceParZoneFc = emptyMap(),
+                tempsParZoneFc = emptyMap(),
+                traceGpsJson = null
+            )
+
+            // On notifie le parent immédiatement si on a dû créer l'objet par défaut
+            // pour éviter les états nulls incohérents
+            LaunchedEffect(courseDetails) {
+                if (courseDetails == null) onCourseDetailsChange(safeDetails)
+            }
+
+            CourseActivityForm(
+                courseDetails = safeDetails,
+                onCourseDetailsChange = onCourseDetailsChange
+            )
+        }
+        TypeObjectif.AUTRE -> {
+            // Si l'objet est null (ex: on passe de Course à Natation), on en crée un vide
+        }
+
+        // --- EXTENSIBILITÉ FUTURE ---
+        // TypeObjectif.NATATION -> { NatationForm(...) }
+        // TypeObjectif.VELO -> { VeloForm(...) }
+
+        else -> {
+            // Rien à afficher pour les types génériques
+        }
+    }
 }
