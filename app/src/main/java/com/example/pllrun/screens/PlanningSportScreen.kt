@@ -428,7 +428,7 @@ fun DayDetailsPopup(
                         item {
                             Text("Objectifs en cours ce jour-là", style = MaterialTheme.typography.titleMedium)
                         }
-                        lazyListItems(objectifsDuJour, key = { it.id }) { objectif ->
+                        lazyListItems(objectifsDuJour, key = { "obj-${it.id}" }) { objectif ->
                             // On réutilise ObjectifCard de ObjectifsComponent.kt
                             ObjectifCard(
                                 objectif = objectif,
@@ -442,7 +442,7 @@ fun DayDetailsPopup(
                         item {
                             Text("Activités prévues", style = MaterialTheme.typography.titleMedium)
                         }
-                        lazyListItems(activitesDuJour, key = { it.id }) { activite ->
+                        lazyListItems(activitesDuJour,key = { "act-${it.id}" }) { activite ->
                             // On réutilise ActivityRow de Activity.kt
                             ActivityRow(
                                 act = activite,
