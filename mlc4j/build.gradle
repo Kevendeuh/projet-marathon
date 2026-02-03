@@ -1,0 +1,42 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.serialization' version '1.8.0'
+}
+
+android {
+    namespace 'ai.mlc.mlcllm'
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 26
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+    sourceSets {
+        main {
+            // 1. On dit à Gradle où sont vos fichiers .kt (le code source)
+            java.srcDirs = ['src/main/java']
+            // 2. On dit où sont vos libs natives .so (que vous devrez copier)
+            jniLibs.srcDirs = ['src/main/jniLibs']
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    // --- MODIFICATION ICI ---
+    // Au lieu de '0.16.0', on cible la version snapshot qui est disponible sur les serveurs
+    implementation 'org.slf4j:slf4j-nop:1.7.36'
+    implementation libs.androidx.core.ktx.v1120
+    implementation libs.androidx.appcompat
+    implementation libs.material
+    implementation libs.kotlinx.serialization.json
+    implementation libs.kotlinx.coroutines.android
+}

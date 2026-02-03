@@ -1,3 +1,4 @@
+import org.gradle.kotlin.dsl.implementation
 
 plugins {
     alias(libs.plugins.android.application)
@@ -17,13 +18,18 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
+        multiDexEnabled = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         //noinspection WrongGradleMethod
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")
         }
+    }
+
+    androidResources {
+        // Utilise cette syntaxe précise pour éviter les erreurs de type au build
+        noCompress.addAll(listOf("bin", "json", "tokenizer.model"))
     }
 
     buildTypes {
@@ -52,6 +58,9 @@ android {
 
 
 dependencies {
+    //IAModel
+    implementation(project(":mlc4j"))
+    implementation("androidx.concurrent:concurrent-futures-ktx:1.1.0")
     //vico graphs
     implementation("com.patrykandpatrick.vico:compose-m3:2.3.6") // Ou dernière version stable
     implementation("com.patrykandpatrick.vico:core:2.3.6")
@@ -70,6 +79,7 @@ dependencies {
     implementation(libs.androidx.compose.runtime.livedata)
     implementation(libs.places)
     implementation(libs.gms.play.services.wearable)
+    implementation(libs.androidx.datastore.core)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
