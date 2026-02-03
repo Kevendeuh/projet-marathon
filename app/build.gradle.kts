@@ -1,4 +1,5 @@
 import org.gradle.kotlin.dsl.implementation
+import jdk.javadoc.internal.doclint.DocLint.main
 
 plugins {
     alias(libs.plugins.android.application)
@@ -24,6 +25,16 @@ android {
         //noinspection WrongGradleMethod
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")
+        }
+
+        ndk {
+            abiFilters.add("arm64-v8a")
+        }
+    }
+
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDirs("src/main/jniLibs")
         }
     }
 

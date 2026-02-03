@@ -104,6 +104,10 @@ fun HubScreen(
     val utilisateurPrincipal by viewModel.getFirstUtilisateur().observeAsState(initial = null)
     val activitesDuJour by viewModel.getActivitesForDay(LocalDate.now()).observeAsState(initial = emptyList())
 
+    // IA nutrition
+    val suggestionRepas by viewModel.suggestionRepas.collectAsState()
+    val isLoadingSuggestion by viewModel.isLoadingSuggestion.collectAsState()
+
 
     val sleepMinutes by viewModel.getRecommendedSleepTime(utilisateurPrincipal?.id ?: -1).observeAsState(0L)
     val bedtime by viewModel.getRecommendedBedtime(utilisateurPrincipal?.id ?: -1).observeAsState(LocalTime.of(22, 0))
@@ -261,35 +265,72 @@ fun HubScreen(
                             )
                         }
 
+
                         TaskCard(
                             title = "À Manger",
-                            // AJOUT : Passage de l'icône
                             icon = {
                                 Icon(
                                     imageVector = Icons.Default.Restaurant,
                                     contentDescription = "Icône de nourriture",
-                                    tint = Color(0xFFFF751F)
+                                    tint = MaterialTheme.colorScheme.primaryContainer
                                 )
                             },
                             onThreeDotsClick = { /* TODO: Naviguer vers écran nutrition */ },
                             modifier = Modifier.weight(1f)
                         ) {
-                            // On affiche les données formatées de l'objet nutriments
-                            if (utilisateurPrincipal != null && nutriments.calories > 0) {
-                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.Start, // Aligner le texte à gauche
+                                verticalArrangement = Arrangement.spacedBy(8.dp) // Espace entre les éléments
+                            ) {
+                                // 1. Informations nutritionnelles de base
+                                if (utilisateurPrincipal != null && nutriments.calories > 0) {
+                                    Column {
+                                        Text(
+                                            "${nutriments.calories.toInt()} kcal",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            "P: ${nutriments.proteines.toInt()}g | G: ${nutriments.glucides.toInt()}g | L: ${nutriments.lipides.toInt()}g",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            lineHeight = 14.sp // Améliore la lisibilité
+                                        )
+                                    }
+                                } else {
+                                    Text("N/A", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp)) // Espace avant le bouton
+
+                                // 2. Bouton pour générer une suggestion
+                                utilisateurPrincipal?.let { user ->
+                                    Button(
+                                        onClick = { viewModel.genererSuggestionRepas(user) },
+                                        enabled = !isLoadingSuggestion, // Désactivé pendant le chargement
+                                        modifier = Modifier.fillMaxWidth(),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("Idée repas", fontSize = 12.sp) // Texte plus petit pour un bouton compact
+                                    }
+                                }
+
+                                // 3. Barre de chargement et output de la suggestion
+                                if (isLoadingSuggestion) {
+                                    // Centre la barre de chargement
+                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                    }
+                                } else if (!suggestionRepas.isNullOrBlank()) {
+                                    // 4. Affiche l'output généré
                                     Text(
-                                        "${nutriments.calories.toInt()} kcal",
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        "P: ${nutriments.proteines.toInt()}g | G: ${nutriments.glucides.toInt()}g | L: ${nutriments.lipides.toInt()}g",
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        text = suggestionRepas!!,
+                                        style = MaterialTheme.typography.bodySmall, // Style plus petit
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(top = 4.dp)
                                     )
                                 }
-                            } else {
-                                Text("N/A", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }

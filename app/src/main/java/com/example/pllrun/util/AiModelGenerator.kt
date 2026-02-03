@@ -90,9 +90,9 @@ class NutritionAiGenerator {
 
         return """
         [INST]
-        Athlète : $age, $sexe, ${utilisateur.poids}kg, ${utilisateur.taille}cm. Niveau: $niveau.
-        Objectif : Marathon.
-        Recette de récupération (Plat, Calories, Ingrédients, Pourquoi).
+        Athlète : $age ans, de sexe $sexe, poids actuel${utilisateur.poids}kg, poids désiré ${utilisateur.poidsCible}kg, ${utilisateur.taille}cm. Niveau: $niveau.
+        Objectif : Musculation.
+        Recette de récupération (Plat, Calories, Ingrédients, Quantité, Apports en nutriments).
         [/INST]
         """.trimIndent()
     }

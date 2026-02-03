@@ -39,6 +39,9 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 import java.time.ZoneId
+import com.example.pllrun.util.NutritionAiGenerator
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * View Model to keep a reference to the Inventory repository and an up-to-date list of all items.
@@ -48,6 +51,38 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
                           private val objectifDao: ObjectifDao,
                           private val repository: InventaireRepository)
     : ViewModel() {
+
+    // 1. Instance paresseuse du générateur IA
+    private val nutritionAiGenerator by lazy { NutritionAiGenerator() }
+
+    // 2. États pour la suggestion de repas et le chargement
+    private val _suggestionRepas = MutableStateFlow<String?>(null)
+    val suggestionRepas: StateFlow<String?> = _suggestionRepas.asStateFlow()
+
+    private val _isLoadingSuggestion = MutableStateFlow(false)
+    val isLoadingSuggestion: StateFlow<Boolean> = _isLoadingSuggestion.asStateFlow()
+
+    /**
+     * Lance la génération d'une suggestion de repas pour un utilisateur donné.
+     * Met à jour les StateFlows pour le chargement et le résultat.
+     */
+    fun genererSuggestionRepas(utilisateur: Utilisateur) {
+        viewModelScope.launch {
+            // Met l'état de chargement à vrai
+            _isLoadingSuggestion.value = true
+            // Lance la génération
+            val suggestion = nutritionAiGenerator.genererSuggestionRepas(utilisateur)
+            // Met à jour la suggestion et arrête le chargement
+            _suggestionRepas.value = suggestion
+            _isLoadingSuggestion.value = false
+        }
+    }
+
+    // 4. Libérer le modèle IA lorsque le ViewModel n'est plus utilisé
+    override fun onCleared() {
+        super.onCleared()
+        nutritionAiGenerator.unload() // Appelle la méthode unload pour libérer la mémoire
+    }
 
     /**
      * Inserts the new Utilisateur into database.
