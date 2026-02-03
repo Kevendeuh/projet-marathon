@@ -1,3 +1,9 @@
+# Ignore le dossier du modèle IA (4Go+)
+app/src/main/assets/mlc-model/
+# Ignore les fichiers de cache de compilation binaire (si présents)
+app/src/main/assets/mlc-model/*.bin
+app/src/main/assets/mlc-model/*.json
+
 # Gradle files
 .gradle/
 build/
