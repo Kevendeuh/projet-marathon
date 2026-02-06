@@ -54,6 +54,7 @@ class MLCEngine {
     }
 
     fun reload(modelPath: String, modelLib: String) {
+        android.util.Log.e("DEBUG_MLC", "Je cherche le modèle ici : " + modelPath)
         val engineConfig = """
             {
                 "model": "$modelPath",

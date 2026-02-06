@@ -30,7 +30,7 @@ public class TVMObject extends TVMValue {
   }
 
   public void release() {
-    Base.checkCall(Base._LIB.tvmObjectFree(this.handle));
+    Base.checkCall(Base._LIB.tvmFFIObjectFree(this.handle));
     this.handle = 0;
   }
 

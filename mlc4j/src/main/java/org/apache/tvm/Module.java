@@ -32,14 +32,24 @@ public class Module extends TVMObject {
         }
       };
 
-  private static Function getApi(String name) {
-    Function func = apiFuncs.get().get(name);
-    if (func == null) {
-      func = Function.getFunction(name);
-      apiFuncs.get().put(name, func);
+    private static Function getApi(String name) {
+        Function func = apiFuncs.get().get(name);
+        if (func == null) {
+            func = Function.getFunction(name);
+
+            // AJOUTE CECI POUR ÉVITER LE CRASH "NULL POINTER"
+            if (func == null) {
+                System.err.println("CRITIQUE: Fonction TVM introuvable: " + name);
+                // On tente un fallback courant au cas où
+                if (name.startsWith("runtime.")) {
+                    func = Function.getFunction(name.replace("runtime.", "module."));
+                }
+            }
+
+            apiFuncs.get().put(name, func);
+        }
+        return func;
     }
-    return func;
-  }
 
   Module(long handle) {
     super(handle, TypeIndex.kTVMFFIModule);
@@ -75,7 +85,8 @@ public class Module extends TVMObject {
    * @return The result function.
    */
   public Function getFunction(String name, boolean queryImports) {
-    TVMValue ret = getApi("ffi.ModuleGetFunction")
+    //TVMValue ret = getApi("ffi.ModuleGetFunction")
+      TVMValue ret = getApi("runtime.ModuleGetFunction")
         .pushArg(this).pushArg(name).pushArg(queryImports ? 1 : 0).invoke();
     return ret.asFunction();
   }
@@ -89,7 +100,8 @@ public class Module extends TVMObject {
    * @param module The other module.
    */
   public void importModule(Module module) {
-    getApi("ffi.ModuleImportModule")
+    //getApi("ffi.ModuleImportModule")
+      getApi("runtime.ModuleImports")
         .pushArg(this).pushArg(module).invoke();
   }
 
@@ -98,7 +110,8 @@ public class Module extends TVMObject {
    * @return type key of the module.
    */
   public String typeKey() {
-    return getApi("ffi.ModuleGetTypeKind").pushArg(this).invoke().asString();
+    //return getApi("ffi.ModuleGetTypeKind").pushArg(this).invoke().asString();
+      return getApi("runtime.ModuleGetTypeKey").pushArg(this).invoke().asString();
   }
 
   /**
@@ -109,8 +122,9 @@ public class Module extends TVMObject {
    * @return The loaded module
    */
   public static Module load(String path, String fmt) {
-    TVMValue ret = getApi("ffi.ModuleLoadFromFile").pushArg(path).pushArg(fmt).invoke();
-    return ret.asModule();
+    //TVMValue ret = getApi("ffi.ModuleLoadFromFile").pushArg(path).pushArg(fmt).invoke();
+      TVMValue ret = getApi("runtime.ModuleLoadFromFile").pushArg(path).pushArg(fmt).invoke();
+      return ret.asModule();
   }
 
   public static Module load(String path) {
@@ -128,4 +142,6 @@ public class Module extends TVMObject {
     TVMValue ret = getApi("runtime.RuntimeEnabled").pushArg(target).invoke();
     return ret.asLong() != 0;
   }
+
+
 }
