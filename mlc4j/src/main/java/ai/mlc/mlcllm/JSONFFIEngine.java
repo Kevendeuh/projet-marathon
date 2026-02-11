@@ -20,6 +20,10 @@ public class JSONFFIEngine {
     private Function exitBackgroundLoopFunc;
     private Function requestStreamCallback;
 
+    static {
+        System.loadLibrary("mlc_llm_jni");
+    }
+
     public JSONFFIEngine() {
         Function createFunc = Function.getFunction("mlc.json_ffi.CreateJSONFFIEngine");
         assert createFunc != null;
@@ -37,7 +41,7 @@ public class JSONFFIEngine {
     }
 
     public void initBackgroundEngine(KotlinFunction callback) {
-        Device device = Device.opencl();
+        Device device = Device.vulkan();
 
         requestStreamCallback = Function.convertFunc(new Function.Callback() {
             @Override

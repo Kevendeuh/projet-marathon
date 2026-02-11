@@ -54,12 +54,13 @@ class MLCEngine {
     }
 
     fun reload(modelPath: String, modelLib: String) {
-        android.util.Log.e("DEBUG_MLC", "Je cherche le modèle ici : " + modelPath)
+        // CORRECTION : On force "vulkan" pour éviter le crash OpenCL
         val engineConfig = """
             {
                 "model": "$modelPath",
                 "model_lib": "system://$modelLib",
-                "mode": "interactive"
+                "mode": "interactive",
+                "device": "vulkan"
             }
         """
         jsonFFIEngine.reload(engineConfig)

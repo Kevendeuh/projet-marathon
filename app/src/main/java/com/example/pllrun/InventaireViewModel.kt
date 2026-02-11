@@ -1,6 +1,7 @@
 package com.example.pllrun
 
 
+import android.app.Application
 import android.util.Log
 import androidx.compose.foundation.gestures.forEach
 import androidx.lifecycle.LiveData
@@ -40,6 +41,7 @@ import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 import java.time.ZoneId
 import com.example.pllrun.util.NutritionAiGenerator
+import dagger.hilt.android.internal.Contexts.getApplication
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -49,13 +51,17 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
                           private val objectifDao: ObjectifDao,
-                          private val repository: InventaireRepository)
+                          private val repository: InventaireRepository,
+                          private val application: Application)
     : ViewModel() {
 
     // 1. Instance paresseuse du générateur IA
-    private val nutritionAiGenerator by lazy { NutritionAiGenerator() }
+    // 2. CORRECTION : Initialisation propre avec le contexte de l'application
+    private val nutritionAiGenerator by lazy {
+        NutritionAiGenerator(application.applicationContext)
+    }
 
-    // 2. États pour la suggestion de repas et le chargement
+    // États pour la suggestion de repas et le chargement
     private val _suggestionRepas = MutableStateFlow<String?>(null)
     val suggestionRepas: StateFlow<String?> = _suggestionRepas.asStateFlow()
 
@@ -64,24 +70,22 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
 
     /**
      * Lance la génération d'une suggestion de repas pour un utilisateur donné.
-     * Met à jour les StateFlows pour le chargement et le résultat.
      */
     fun genererSuggestionRepas(utilisateur: Utilisateur) {
         viewModelScope.launch {
-            // Met l'état de chargement à vrai
             _isLoadingSuggestion.value = true
-            // Lance la génération
+            // Lance la génération (fonction suspendue)
             val suggestion = nutritionAiGenerator.genererSuggestionRepas(utilisateur)
-            // Met à jour la suggestion et arrête le chargement
+
             _suggestionRepas.value = suggestion
             _isLoadingSuggestion.value = false
         }
     }
 
-    // 4. Libérer le modèle IA lorsque le ViewModel n'est plus utilisé
+    // Libérer le modèle IA lorsque le ViewModel n'est plus utilisé
     override fun onCleared() {
         super.onCleared()
-        nutritionAiGenerator.unload() // Appelle la méthode unload pour libérer la mémoire
+        nutritionAiGenerator.unload()
     }
 
     /**
@@ -527,14 +531,16 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
 /**
  * Factory class to instantiate the [ViewModel] instance.
  */
-class InventaireViewModelFactory(private val utilisateurDao: UtilisateurDao,
-                                 private val objectifDao: ObjectifDao,
-                                 private val InventaireRepository: InventaireRepository)
-    : ViewModelProvider.Factory {
+class InventaireViewModelFactory(
+    private val utilisateurDao: UtilisateurDao,
+    private val objectifDao: ObjectifDao,
+    private val inventaireRepository: InventaireRepository,
+    private val application: Application
+) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(InventaireViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return InventaireViewModel(utilisateurDao, objectifDao, InventaireRepository) as T
+            return InventaireViewModel(utilisateurDao, objectifDao, inventaireRepository, application) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

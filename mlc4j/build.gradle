@@ -26,6 +26,11 @@ android {
             jniLibs.srcDirs = ['src/main/jniLibs']
         }
     }
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
 }
 
 dependencies {

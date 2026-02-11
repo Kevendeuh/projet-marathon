@@ -82,7 +82,8 @@ class MainActivity : ComponentActivity() {
         InventaireViewModelFactory(
             utilisateurDao = InventaireRoomDatabase.getDatabase(this).utilisateurDao(),
             objectifDao = InventaireRoomDatabase.getDatabase(this).objectifDao(),
-            InventaireRepository = repository
+            application = application,
+            inventaireRepository = repository
         )
     }
 
