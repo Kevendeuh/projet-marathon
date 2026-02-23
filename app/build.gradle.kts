@@ -1,6 +1,3 @@
-import org.gradle.kotlin.dsl.implementation
-import jdk.javadoc.internal.doclint.DocLint.main
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -63,12 +60,6 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
-    
-    packagingOptions {
-        jniLibs {
-            useLegacyPackaging = true
         }
     }
 }

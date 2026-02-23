@@ -14,37 +14,33 @@ import java.time.Period
 
 class NutritionAiGenerator(private val context: Context) {
 
-    private val engine: MLCEngine
-    private var isModelLoaded = false
+    private val engine: MLCEngine;
+    private var isModelLoaded = false;
 
     // --- CONFIGURATION MISTRAL ---
     // Nom physique de la lib .so chargée (ne change pas ça)
-    private val modelLib = "mistral_q4f16_1_7ee501c699c01f7e2965790fad74bc79"
-
-    // Nom du dossier dans tes Assets (sur ton PC)
-    // Assure-toi que tu as bien : assets/mlc-model/mlc-chat-config.json (et pas un sous-dossier)
-    private val assetModelDir = "mlc-model"
-
+    //private val modelLib = "mistral_q4f16_1_7ee501c699c01f7e2965790fad74bc79"
+    private val modelLib = "mistral_nutritionist"
+    //private val assetModelDir = "mlc-model"
+    private val assetModelDir = "dist/mistral-nutritionist"
     // Nom du dossier sur le téléphone (Destination)
     // On met un nom clair pour s'y retrouver
-    private val deviceModelDir = "dist/mistral-7b-nutritionist-q4f16_1-MLC"
-
+    //private val deviceModelDir = "dist/mistral-7b-nutritionist-q4f16_1-MLC"
+    private val deviceModelDirName = "mistral-nutritionist-v1"
+    private val externalModelDir = File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), "mistral-nutritionist-v1")
     init {
-        // 1. Initialisation des fichiers sur le téléphone
-        val appDir = context.getExternalFilesDir(null) ?: context.filesDir
-        val destDir = File(appDir, deviceModelDir)
+        val appDocDir = context.getExternalFilesDir(null)
+        val finalModelDir = File(appDocDir, deviceModelDirName)
+        // Plus de copie d'assets !
+        Log.i("MLC_INIT", "Recherche du modèle dans : ${externalModelDir.absolutePath}")
 
-        Log.i("MLC_INIT", "Vérification dossier modèle : ${destDir.absolutePath}")
+        val configFile = File(externalModelDir, "mlc-chat-config.json")
 
-        // On vérifie la présence du fichier de config vital
-        val configFile = File(destDir, "mlc-chat-config.json")
-
-        // Si le dossier n'existe pas OU que le fichier config manque -> on copie
-        if (!destDir.exists() || !configFile.exists()) {
-            Log.w("MLC_INIT", "Configuration manquante. Copie des assets...")
-            copyAssets(context, assetModelDir, destDir)
+        if (externalModelDir.exists() && configFile.exists()) {
+            Log.i("MLC_INIT", "✅ Modèle trouvé sur le stockage externe.")
         } else {
-            Log.i("MLC_INIT", "Modèle Mistral détecté. Prêt.")
+            Log.e("MLC_INIT", "❌ MODÈLE MANQUANT ! Utilise ADB pour copier les fichiers.")
+            // Tu pourras afficher une erreur à l'utilisateur ici
         }
 
         engine = MLCEngine()
@@ -55,12 +51,10 @@ class NutritionAiGenerator(private val context: Context) {
             try {
                 // 2. Chargement du modèle Mistral
                 if (!isModelLoaded) {
-                    val appDir = context.getExternalFilesDir(null) ?: context.filesDir
-                    val modelPath = File(appDir, deviceModelDir).absolutePath
+                    val appDocDir = context.getExternalFilesDir(null)
+                    val modelPath = File(appDocDir, deviceModelDirName).absolutePath
 
-                    Log.i("MLC_RUN", "Chargement de Mistral depuis : $modelPath")
-
-                    // C'est ici que ça plantait avant si le chemin était faux
+                    Log.i("MLC_RUN", "Chargement depuis : $modelPath")
                     engine.reload(modelPath, modelLib)
                     isModelLoaded = true
                 }
@@ -83,7 +77,7 @@ class NutritionAiGenerator(private val context: Context) {
                 val channel = engine.chat.completions.create(
                     messages = messages,
                     temperature = 0.7f,
-                    max_tokens = 1000, // Mistral est bavard, on laisse de la place
+                    max_tokens = 800, // Mistral est bavard, on laisse de la place
                     stream = true
                 )
 
@@ -124,16 +118,17 @@ class NutritionAiGenerator(private val context: Context) {
         Crée une recette de récupération pour la musculation.
         
         Profil :
-        - $age, $sexe
-        - Poids: ${utilisateur.poids}kg (Objectif: ${utilisateur.poidsCible}kg)
+        - Age: $age ans
+        - Sex: $sexe
+        - Poids: ${utilisateur.poids}kg (Objectif de poids: ${utilisateur.poidsCible}kg)
         - Taille: ${utilisateur.taille}cm
         - Niveau: $niveau
         
-        Donne moi :
-        1. Nom du plat
-        2. Calories & Macros (Protéines/Glucides/Lipides)
-        3. Ingrédients exacts
-        4. Préparation courte
+        Format attendu :
+        TITRE
+        INGREDIENTS (avec quantités)
+        INSTRUCTIONS (courtes)
+        MACROS (Protéines/Glucides/Lipides)
         """.trimIndent()
     }
 

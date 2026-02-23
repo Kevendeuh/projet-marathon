@@ -35,7 +35,10 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    // implementation("ai.mlc:mlc-llm-android:0.1.0")
 
+    // Si ton module mlc4j a besoin de contexte Android standard
+    implementation("androidx.appcompat:appcompat:1.6.1")
     // --- MODIFICATION ICI ---
     // Au lieu de '0.16.0', on cible la version snapshot qui est disponible sur les serveurs
     implementation 'org.slf4j:slf4j-nop:1.7.36'
