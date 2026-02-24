@@ -21,6 +21,11 @@ public class JSONFFIEngine {
     private Function requestStreamCallback;
 
     static {
+        // CRITICAL: Load the TVM runtime dependency FIRST.
+        // libmlc_llm_jni.so depends on libtvm4j_runtime_packed.so at the symbol level.
+        // Android's linker will fail with "cannot locate symbol" if the dependency
+        // is not already resident in memory before the dependent library is opened.
+        System.loadLibrary("tvm4j_runtime_packed");
         System.loadLibrary("mlc_llm_jni");
     }
 

@@ -61,6 +61,11 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        jniLibs {
+            // REQUIRED: .so files must be stored uncompressed in the APK
+            // so Android can dlopen() them directly from the APK path.
+            useLegacyPackaging = true
+        }
     }
 }
 

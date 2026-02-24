@@ -54,7 +54,13 @@ class MLCEngine {
     }
 
     fun reload(modelPath: String, modelLib: String) {
-        // CORRECTION : On force "vulkan" pour éviter le crash OpenCL
+        // model_lib must use the system:// protocol — libmistral_nutritionist.so is a
+        // TVM system lib whose functions (vm_load_executable, etc.) are registered
+        // globally via static init when the .so is loaded with System.loadLibrary().
+        // Module::LoadFromFile (file path) does NOT trigger system lib registration,
+        // so vm_load_executable would be invisible to the engine.
+        // The DT_NEEDED patchelf fix ensures System.loadLibrary() can now resolve
+        // TVMFFIFunctionCall before this system:// lookup happens.
         val engineConfig = """
             {
                 "model": "$modelPath",
