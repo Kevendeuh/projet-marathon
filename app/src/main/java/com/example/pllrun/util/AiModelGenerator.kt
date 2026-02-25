@@ -8,6 +8,9 @@ import com.example.pllrun.Classes.NiveauExperience
 import com.example.pllrun.Classes.Sexe
 import com.example.pllrun.Classes.Utilisateur
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.LocalDate
@@ -69,56 +72,61 @@ class NutritionAiGenerator(private val context: Context) {
      *
      * @return A formatted recipe string, or a localised error message on failure.
      */
-    suspend fun genererSuggestionRepas(utilisateur: Utilisateur): String {
-        return withContext(Dispatchers.IO) {
-            try {
-                ensureModelLoaded()
-                val engine = _engine ?: return@withContext "Erreur : moteur non initialisé."
-
-                val systemPrompt = buildSystemPrompt()
-                val userPrompt  = buildUserPrompt(utilisateur)
-
-                Log.d(TAG, "Envoi du prompt…")
-
-                val messages = listOf(
-                    OpenAIProtocol.ChatCompletionMessage(
-                        role    = OpenAIProtocol.ChatCompletionRole.system,
-                        content = systemPrompt
-                    ),
-                    OpenAIProtocol.ChatCompletionMessage(
-                        role    = OpenAIProtocol.ChatCompletionRole.user,
-                        content = userPrompt
-                    )
-                )
-
-                val channel = engine.chat.completions.create(
-                    messages    = messages,
-                    temperature = TEMPERATURE,
-                    max_tokens  = MAX_NEW_TOKENS,
-                    stream      = true
-                )
-
-                val sb = StringBuilder()
-                for (response in channel) {
-                    response.choices.firstOrNull()?.delta?.content?.asText()?.let { sb.append(it) }
-                }
-
-                val result = sb.toString().trim()
-                if (result.isBlank()) {
-                    return@withContext "Le modèle n'a produit aucune réponse. Essayez de nouveau."
-                }
-
-                Log.i(TAG, "Génération terminée (${result.length} caractères).")
-                result
-
-            } catch (e: Exception) {
-                Log.e(TAG, "Erreur pendant l'inférence", e)
-                // Reset so the next call will try to reload the model
-                isModelLoaded = false
-                "Erreur : ${e.message ?: "inconnue"}"
+    suspend fun genererSuggestionRepas(utilisateur: Utilisateur): Flow<String> = flow {
+        try {
+            ensureModelLoaded()
+            val engine = _engine
+            if (engine == null) {
+                emit("Erreur : moteur non initialisé.")
+                return@flow
             }
+
+            val systemPrompt = buildSystemPrompt()
+            val userPrompt  = buildUserPrompt(utilisateur)
+
+            Log.d(TAG, "Envoi du prompt…")
+
+            val messages = listOf(
+                OpenAIProtocol.ChatCompletionMessage(
+                    role    = OpenAIProtocol.ChatCompletionRole.system,
+                    content = systemPrompt
+                ),
+                OpenAIProtocol.ChatCompletionMessage(
+                    role    = OpenAIProtocol.ChatCompletionRole.user,
+                    content = userPrompt
+                )
+            )
+
+            val channel = engine.chat.completions.create(
+                messages    = messages,
+                temperature = TEMPERATURE,
+                max_tokens  = MAX_NEW_TOKENS,
+                stream      = true
+            )
+
+            val sb = StringBuilder()
+            for (response in channel) {
+                val token = response.choices.firstOrNull()?.delta?.content?.asText()
+                if (token != null) {
+                    sb.append(token)
+                    emit(sb.toString())
+                }
+            }
+
+            val result = sb.toString().trim()
+            if (result.isBlank()) {
+                emit("Le modèle n'a produit aucune réponse. Essayez de nouveau.")
+            } else {
+                Log.i(TAG, "Génération terminée (${result.length} caractères).")
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Erreur pendant l'inférence", e)
+            // Reset so the next call will try to reload the model
+            isModelLoaded = false
+            emit("Erreur : ${e.message ?: "inconnue"}")
         }
-    }
+    }.flowOn(Dispatchers.IO)
 
     /** Releases native resources. Call from ViewModel.onCleared(). */
     fun unload() {
