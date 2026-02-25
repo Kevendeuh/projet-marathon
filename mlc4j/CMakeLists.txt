@@ -48,7 +48,8 @@ set_target_properties(
 
 add_library(
   tvm4j_runtime_packed SHARED
-  ${TVM_SOURCE_DIR}/jvm/native/src/main/native/org_apache_tvm_native_c_api.cc)
+  ${TVM_SOURCE_DIR}/jvm/native/src/main/native/org_apache_tvm_native_c_api.cc
+  ${ANDROID_DIR}/src/cpp/tvm_runtime_compat.cc)
 set(MLC_LLM_COMPILE_DEFS ${MLC_LLM_COMPILE_DEFS}
                          TVM_SOURCE_DIR=${TVM_SOURCE_DIR})
 

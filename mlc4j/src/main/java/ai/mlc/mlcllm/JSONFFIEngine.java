@@ -26,7 +26,6 @@ public class JSONFFIEngine {
         // Android's linker will fail with "cannot locate symbol" if the dependency
         // is not already resident in memory before the dependent library is opened.
         System.loadLibrary("tvm4j_runtime_packed");
-        System.loadLibrary("mlc_llm_jni");
     }
 
     public JSONFFIEngine() {

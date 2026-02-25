@@ -32,7 +32,7 @@ class NutritionAiGenerator(private val context: Context) {
          * Must match the stem of the compiled model cartridge .so:
          *   → jniLibs/arm64-v8a/lib<MODEL_LIB>.so
          */
-        private const val MODEL_LIB = "mistral_nutritionist"
+        private const val MODEL_LIB = "mistral_q4f16_1"
 
         /**
          * Name of the directory (inside the app's external-files dir OR on external storage)
@@ -100,7 +100,7 @@ class NutritionAiGenerator(private val context: Context) {
 
                 val sb = StringBuilder()
                 for (response in channel) {
-                    response.choices.firstOrNull()?.delta?.content?.let { sb.append(it) }
+                    response.choices.firstOrNull()?.delta?.content?.asText()?.let { sb.append(it) }
                 }
 
                 val result = sb.toString().trim()
@@ -176,8 +176,8 @@ class NutritionAiGenerator(private val context: Context) {
         // can now resolve TVMFFIFunctionCall at dlopen time.
         // Its static initialisers run and register model functions (vm_load_executable, …)
         // as TVM system lib globals — which the engine then finds via "system://" lookup.
-        System.loadLibrary(MODEL_LIB)
-        Log.i(TAG, "Bibliothèque modèle chargée : lib${MODEL_LIB}.so")
+        System.loadLibrary("mistral_nutritionist")
+        Log.i(TAG, "Bibliothèque modèle chargée : libmistral_nutritionist.so")
 
         // Step 3: Ask the background loop to load weights + initialise the engine.
         engine.reload(modelDir.absolutePath, MODEL_LIB)
