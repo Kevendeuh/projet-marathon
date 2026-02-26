@@ -25,15 +25,19 @@ import com.example.pllrun.screens.EnregistrementScreen
 import com.example.pllrun.screens.ObjectifScreen
 import com.example.pllrun.screens.HubScreen
 import com.example.pllrun.screens.PlanningSportScreen
+import com.example.pllrun.screens.RecetteScreen
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 
 enum class AppScreen {
     Accueil,
     Enregistrement,
+
     Objectif,
     Hub,
-    PlanningSport
+    PlanningSport,
+
+    Recette
 }
 
 @Composable
@@ -113,11 +117,25 @@ fun AppNavHost(
                 onAddGoal = {
                     navController.navigate(AppScreen.Objectif.name)
                 },
+                onNavigateToRecettes = {
+                    navController.navigate(AppScreen.Recette.name)
+                },
 
                 viewModel = viewModel,
 
             )
         }
+
+        // AJOUT : Composable pour l'écran des recettes
+        composable(route = AppScreen.Recette.name) {
+            RecetteScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                // TODO: Implémentez la navigation vers un écran d'ajout/modification si nécessaire
+                onAddRecette = { /* navController.navigate(...) */ }
+            )
+        }
+
         composable(route = AppScreen.PlanningSport.name) {
             PlanningSportScreen(
                 viewModel = viewModel,

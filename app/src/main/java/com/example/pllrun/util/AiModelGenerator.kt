@@ -207,19 +207,17 @@ class NutritionAiGenerator(private val context: Context) {
         Tu réponds TOUJOURS en français, de manière concise et structurée.
         Pour chaque demande, tu fournis UNE SEULE recette complète avec le format suivant (exactement) :
 
-        🍽️ NOM DE LA RECETTE
-        ⏱️ Temps de préparation : X min | Temps de cuisson : X min
+        NOM DE LA RECETTE
+        Temps de préparation : X min | Temps de cuisson : X min
 
-        📦 INGRÉDIENTS (pour 1 portion)
+        INGRÉDIENTS (pour 1 portion)
         - [quantité] [ingrédient]
 
-        👨‍🍳 PRÉPARATION (étapes numérotées, courtes)
+        PRÉPARATION (étapes numérotées, courtes)
         1. ...
 
-        📊 VALEURS NUTRITIONNELLES (estimées)
+        VALEURS NUTRITIONNELLES (estimées)
         Calories : X kcal | Protéines : Xg | Glucides : Xg | Lipides : Xg
-
-        💡 INTÉRÊT SPORTIF (1 phrase)
     """.trimIndent()
 
     /**

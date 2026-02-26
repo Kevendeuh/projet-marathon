@@ -94,6 +94,7 @@ fun HubScreen(
     onEditProfile: () -> Unit,
     onPlanningSport: () -> Unit,
     onAddGoal: () -> Unit,
+    onNavigateToRecettes: () -> Unit,
 ) {
     // --- GESTION DES ÉTATS DE L'UI POUR LES DIALOGUES ---
     var objectifToEditId by remember { mutableStateOf<Long?>(null) }
@@ -275,7 +276,7 @@ fun HubScreen(
                                     tint = MaterialTheme.colorScheme.primaryContainer
                                 )
                             },
-                            onThreeDotsClick = { /* TODO: Naviguer vers écran nutrition */ },
+                            onThreeDotsClick = onNavigateToRecettes,
                             modifier = Modifier.weight(1f)
                         ) {
                             Column(
@@ -330,6 +331,20 @@ fun HubScreen(
                                         color = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.padding(top = 4.dp)
                                     )
+                                    // 4. BOUTON SAUVEGARDER (NOUVEL AJOUT)
+                                    // Ce bouton n'apparaît que si la suggestion est présente et qu'on n'est pas en chargement
+                                    Spacer(modifier = Modifier.height(8.dp)) // Espace avant le bouton
+                                    Button(
+                                        onClick = { viewModel.saveSuggestionAsRecette(suggestionRepas!!) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                        ),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("Sauvegarder", fontSize = 12.sp)
+                                    }
                                 }
                             }
                         }

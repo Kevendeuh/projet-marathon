@@ -51,6 +51,7 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
                           private val objectifDao: ObjectifDao,
+                          private val recetteDao: RecetteDao,
                           private val repository: InventaireRepository,
                           private val application: Application)
     : ViewModel() {
@@ -68,6 +69,58 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
     private val _isLoadingSuggestion = MutableStateFlow(false)
     val isLoadingSuggestion: StateFlow<Boolean> = _isLoadingSuggestion.asStateFlow()
 
+
+    // Dans InventaireViewModel
+    fun getAllRecettesInventaire(): Flow<List<Recette>> = recetteDao.getAllRecettes()
+    /**
+     * Analyse la suggestion de repas textuelle, la convertit en objet Recette
+     * et l'insère dans la base de données.
+     * C'est une implémentation basique, idéale pour être améliorée avec une analyse plus robuste (ex: Regex).
+     */
+    fun saveSuggestionAsRecette(suggestion: String) {
+        viewModelScope.launch {
+            try {
+                // Le titre est la première ligne, en majuscules.
+                val titre = suggestion.lines().firstOrNull { it.isNotBlank() } ?: "Nouvelle Recette"
+
+                // Le corps du texte est la suggestion entière, qui sera affichée en détail.
+                val texte = suggestion
+
+                // Expression régulière pour trouver "Calories : X kcal | Protéines : Yg | Glucides : Zg | Lipides : Wg"
+                // Elle est flexible aux espaces et insensible à la casse.
+                val nutritionRegex = """
+                Calories\s*:\s*(\d+)\s*kcal\s*\|\s*
+                Protéines\s*:\s*(\d+)\s*g\s*\|\s*
+                Glucides\s*:\s*(\d+)\s*g\s*\|\s*
+                Lipides\s*:\s*(\d+)\s*g
+            """.trimIndent().toRegex(setOf(RegexOption.IGNORE_CASE, RegexOption.MULTILINE))
+
+                val matchResult = nutritionRegex.find(suggestion)
+
+                val calories = matchResult?.groupValues?.get(1)?.toFloatOrNull() ?: 0f
+                val proteines = matchResult?.groupValues?.get(2)?.toFloatOrNull() ?: 0f
+                val glucides = matchResult?.groupValues?.get(3)?.toFloatOrNull() ?: 0f
+                val lipides = matchResult?.groupValues?.get(4)?.toFloatOrNull() ?: 0f
+
+                val nouvelleRecette = Recette(
+                    titre = titre,
+                    texte = texte, // On sauvegarde la recette complète
+                    calories = calories,
+                    proteines = proteines,
+                    glucides = glucides,
+                    lipides = lipides
+                )
+
+                recetteDao.insertRecette(nouvelleRecette)
+                Log.d("ViewModel", "Recette sauvegardée: $titre")
+                // Optionnel : Afficher une confirmation à l'utilisateur via un StateFlow/SnackBar
+
+            } catch (e: Exception) {
+                // Gérer l'erreur de parsing ou d'insertion
+                Log.e("ViewModel", "Erreur lors de la sauvegarde de la recette", e)
+            }
+        }
+    }
     /**
      * Lance la génération d'une suggestion de repas pour un utilisateur donné.
      */
@@ -534,13 +587,14 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
 class InventaireViewModelFactory(
     private val utilisateurDao: UtilisateurDao,
     private val objectifDao: ObjectifDao,
+    private val recetteDao: RecetteDao,
     private val inventaireRepository: InventaireRepository,
     private val application: Application
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(InventaireViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return InventaireViewModel(utilisateurDao, objectifDao, inventaireRepository, application) as T
+            return InventaireViewModel(utilisateurDao=utilisateurDao, objectifDao=objectifDao, recetteDao = recetteDao,repository=inventaireRepository, application=application) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

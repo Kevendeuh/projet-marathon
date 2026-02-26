@@ -32,7 +32,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,14 +60,10 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import android.widget.DatePicker
-import android.widget.Toast
-import androidx.compose.foundation.gestures.forEach
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.pllrun.Classes.InventaireRepository
 import com.example.pllrun.Classes.NiveauExperience
-import java.util.Calendar
 import com.example.pllrun.nav.AppNavHost
 
 class MainActivity : ComponentActivity() {
@@ -82,6 +77,7 @@ class MainActivity : ComponentActivity() {
         InventaireViewModelFactory(
             utilisateurDao = InventaireRoomDatabase.getDatabase(this).utilisateurDao(),
             objectifDao = InventaireRoomDatabase.getDatabase(this).objectifDao(),
+            recetteDao = InventaireRoomDatabase.getDatabase(this).recetteDao(),
             application = application,
             inventaireRepository = repository
         )

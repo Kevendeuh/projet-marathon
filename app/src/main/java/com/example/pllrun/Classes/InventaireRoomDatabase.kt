@@ -10,13 +10,15 @@ import androidx.room.TypeConverters
         Objectif::class,
         Activite::class,
         CourseActivite::class,
-        HeartRateMeasurement::class]
+        HeartRateMeasurement::class,
+        Recette::class]
     , version = 2, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class InventaireRoomDatabase : RoomDatabase() {
 
     abstract fun utilisateurDao(): UtilisateurDao
     abstract fun objectifDao(): ObjectifDao
+    abstract fun recetteDao(): RecetteDao
     abstract fun measurementDao(): HeartRateMeasurementDao
 
     companion object {
