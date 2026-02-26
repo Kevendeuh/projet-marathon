@@ -132,7 +132,8 @@ fun AppNavHost(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
                 // TODO: Implémentez la navigation vers un écran d'ajout/modification si nécessaire
-                onAddRecette = { /* navController.navigate(...) */ }
+                onAddRecette = { /* navController.navigate(...) */ },
+                onEditRecette = { recetteId -> }
             )
         }
 

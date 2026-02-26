@@ -69,8 +69,19 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
     private val _isLoadingSuggestion = MutableStateFlow(false)
     val isLoadingSuggestion: StateFlow<Boolean> = _isLoadingSuggestion.asStateFlow()
 
+    //recettes
 
-    // Dans InventaireViewModel
+    fun deleteRecette(recette: Recette) {
+        viewModelScope.launch {
+            recetteDao.deleteRecette(recette)
+        }
+    }
+
+    fun updateRecette(recette: Recette) {
+        viewModelScope.launch {
+            recetteDao.updateRecette(recette)
+        }
+    }
     fun getAllRecettesInventaire(): Flow<List<Recette>> = recetteDao.getAllRecettes()
     /**
      * Analyse la suggestion de repas textuelle, la convertit en objet Recette
@@ -80,27 +91,24 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
     fun saveSuggestionAsRecette(suggestion: String) {
         viewModelScope.launch {
             try {
-                // Le titre est la première ligne, en majuscules.
-                val titre = suggestion.lines().firstOrNull { it.isNotBlank() } ?: "Nouvelle Recette"
+                // Le titre est la première ligne, en majuscules et sans les astérisques.
+                val titre = suggestion.lines().firstOrNull { it.isNotBlank() }
+                    ?.replace("*", "")?.trim()
+                    ?: "Nouvelle Recette"
 
-                // Le corps du texte est la suggestion entière, qui sera affichée en détail.
+                // Le corps du texte est la suggestion entière.
                 val texte = suggestion
 
-                // Expression régulière pour trouver "Calories : X kcal | Protéines : Yg | Glucides : Zg | Lipides : Wg"
-                // Elle est flexible aux espaces et insensible à la casse.
-                val nutritionRegex = """
-                Calories\s*:\s*(\d+)\s*kcal\s*\|\s*
-                Protéines\s*:\s*(\d+)\s*g\s*\|\s*
-                Glucides\s*:\s*(\d+)\s*g\s*\|\s*
-                Lipides\s*:\s*(\d+)\s*g
-            """.trimIndent().toRegex(setOf(RegexOption.IGNORE_CASE, RegexOption.MULTILINE))
+                // Cette regex est conçue pour correspondre EXACTEMENT à la ligne de sortie de l'IA,
+                // en étant flexible sur les espaces. Elle ne contient pas de retours à la ligne.
+                val nutritionRegex = """Calories\s*:\s*([\d,.]+)\s*kcal\s*\|\s*Protéines\s*:\s*([\d,.]+)\s*g\s*\|\s*Glucides\s*:\s*([\d,.]+)\s*g\s*\|\s*Lipides\s*:\s*([\d,.]+)\s*g""".toRegex(RegexOption.IGNORE_CASE)
 
                 val matchResult = nutritionRegex.find(suggestion)
 
-                val calories = matchResult?.groupValues?.get(1)?.toFloatOrNull() ?: 0f
-                val proteines = matchResult?.groupValues?.get(2)?.toFloatOrNull() ?: 0f
-                val glucides = matchResult?.groupValues?.get(3)?.toFloatOrNull() ?: 0f
-                val lipides = matchResult?.groupValues?.get(4)?.toFloatOrNull() ?: 0f
+                val calories = matchResult?.groupValues?.get(1)?.replace(',', '.')?.toFloatOrNull() ?: 0f
+                val proteines = matchResult?.groupValues?.get(2)?.replace(',', '.')?.toFloatOrNull() ?: 0f
+                val glucides = matchResult?.groupValues?.get(3)?.replace(',', '.')?.toFloatOrNull() ?: 0f
+                val lipides = matchResult?.groupValues?.get(4)?.replace(',', '.')?.toFloatOrNull() ?: 0f
 
                 val nouvelleRecette = Recette(
                     titre = titre,
@@ -112,12 +120,11 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
                 )
 
                 recetteDao.insertRecette(nouvelleRecette)
-                Log.d("ViewModel", "Recette sauvegardée: $titre")
-                // Optionnel : Afficher une confirmation à l'utilisateur via un StateFlow/SnackBar
+                Log.d("ViewModel-Recette", "Recette sauvegardée: '$titre' | Cal: $calories, Pro: $proteines, Glu: $glucides, Lip: $lipides")
 
             } catch (e: Exception) {
                 // Gérer l'erreur de parsing ou d'insertion
-                Log.e("ViewModel", "Erreur lors de la sauvegarde de la recette", e)
+                Log.e("ViewModel-Recette", "Erreur lors de la sauvegarde de la recette", e)
             }
         }
     }

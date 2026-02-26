@@ -12,6 +12,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.RestaurantMenu
@@ -36,6 +38,7 @@ import com.example.pllrun.InventaireViewModel
 fun RecetteScreen(
     viewModel: InventaireViewModel, // Suppose que le ViewModel gère l'accès aux recettes
     onNavigateBack: () -> Unit,
+    onEditRecette: (Long) -> Unit, // Passe l'ID de la recette à modifier
     onAddRecette: () -> Unit // Pour naviguer vers un écran de création de recette
 ) {
     // Récupère la liste des recettes depuis le ViewModel
@@ -91,6 +94,14 @@ fun RecetteScreen(
                         isExpanded = expandedCardId == recette.id,
                         onClick = {
                             expandedCardId = if (expandedCardId == recette.id) null else recette.id
+                        },
+                        onDelete = {
+                            // On ferme la carte avant de la supprimer
+                            expandedCardId = null
+                            viewModel.deleteRecette(recette)
+                        },
+                        onEdit = {
+                            onEditRecette(recette.id)
                         }
                     )
                 }
@@ -100,7 +111,11 @@ fun RecetteScreen(
 }
 
 @Composable
-fun RecetteCard(recette: Recette, isExpanded: Boolean, onClick: () -> Unit) {
+fun RecetteCard(    recette: Recette,
+                    isExpanded: Boolean,
+                    onClick: () -> Unit,
+                    onDelete: () -> Unit,
+                    onEdit: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -169,6 +184,32 @@ fun RecetteCard(recette: Recette, isExpanded: Boolean, onClick: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 20.sp // Améliore la lisibilité
                     )
+                    // --- AJOUT : Ligne d'actions ---
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                        horizontalArrangement = Arrangement.End, // Aligne les boutons à droite
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Bouton Modifier
+                        IconButton(onClick = onEdit) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Modifier la recette",
+                                tint = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+
+                        // Bouton Supprimer
+                        IconButton(onClick = onDelete) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Supprimer la recette",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
                 }
             }
         }
