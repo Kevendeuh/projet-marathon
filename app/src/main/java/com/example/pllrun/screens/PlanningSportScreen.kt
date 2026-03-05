@@ -155,18 +155,16 @@ fun PlanningSportScreen(viewModel: InventaireViewModel,
                 viewModel.deleteActivite(toDelete)
                 activiteToEdit = null
             },
-            onSave = { activiteMaj, detailsCourseMaj ->
-                viewModel.updateActivite(activiteMaj)
-
-                if (detailsCourseMaj != null) {
-                    // Si l'ID existe déjà, update, sinon insert
-                    if (detailsCourseMaj.id != 0L) {
-                        viewModel.updateCourseActivite(detailsCourseMaj)
-                    } else {
-                        // Cas rare où on ajoute des détails à une activité qui n'en avait pas
-                        viewModel.insertCourseActivite(detailsCourseMaj.copy(activiteId = activiteMaj.id))
-                    }
+            onSave = { activiteCreee, detailsCourse, detailsMuscu -> // <-- MISE A JOUR SIGNATURE
+                // Le ViewModel gère l'insertion avec transaction selon le type de données retourné
+                if (detailsCourse != null) {
+                    viewModel.addNewActiviteWithCourseDetails(activiteCreee, detailsCourse)
+                } else if (detailsMuscu != null) {
+                    viewModel.addNewActiviteWithMusculationDetails(activiteCreee, detailsMuscu)
+                } else {
+                    viewModel.addNewActivite(activiteCreee)
                 }
+
                 activiteToEdit = null
             }
         )

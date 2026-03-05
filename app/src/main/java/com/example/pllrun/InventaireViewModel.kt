@@ -4,6 +4,7 @@ package com.example.pllrun
 import android.app.Application
 import android.util.Log
 import androidx.compose.foundation.gestures.forEach
+import androidx.compose.remote.creation.first
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -420,31 +421,33 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
     }
     fun addNewObjectifAndGenerateActivities(obj: Objectif) {
         viewModelScope.launch(Dispatchers.IO) {
-            // 1) Insère l’objectif et récupère son id
             val objectifId = objectifDao.insertObjectif(obj)
-
-            // On crée une nouvelle instance de l'objectif avec le bon ID
             val savedObjectif = obj.copy(id = objectifId)
-
-            // 2) Récupère l’utilisateur
             val user = utilisateurDao.getUtilisateurNow(savedObjectif.utilisateurId)
                 ?: return@launch
 
-            // 2. APPEL UNIQUE AU GENERATEUR
-            // Peu importe si c'est Marathon, Cardio ou autre, le PlannerGenerator gère.
-            val activities = PlannerGenerator.generatePlan(savedObjectif, user)
+            // 2. Le générateur retourne maintenant des paires (Activite, CourseActivite?)
+            val activitiesWithDetails = PlannerGenerator.generatePlan(savedObjectif, user)
 
-            // 3. Insérer les activités générées
-            if (activities.isNotEmpty()) {
-                activities.forEach { act ->
-                    addNewActivite(act)
+            // 3. Insérer les activités ET leurs détails via la transaction
+            if (activitiesWithDetails.isNotEmpty()) {
+                activitiesWithDetails.forEach { pair ->
+                    val activite = pair.first
+                    val courseDetails = pair.second
+
+                    if (courseDetails != null) {
+                        // On utilise la méthode qui insère les deux en même temps !
+                        addNewActiviteWithCourseDetails(activite, courseDetails)
+                    } else {
+                        // Si l'activité n'a pas de détails spécifiques (ex: simple footing sans obj de distance)
+                        addNewActivite(activite)
+                    }
                 }
             }
             // 8) Progression basée sur nb d’activités complétées
             recalculateObjectifProgress(objectifId)
         }
     }
-
 
     // Helpers privés à coller dans le ViewModel
     private fun enumerateDates(
@@ -583,6 +586,72 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
         viewModelScope.launch {
             repository.deleteAllBpm()
         }
+    }
+
+    // ---------------------------------------------------------
+    // GESTION DES DÉTAILS DE MUSCULATION (MusculationActivite)
+    // ---------------------------------------------------------
+
+    fun insertMusculationActivite(musculationActivite: MusculationActivite) {
+        viewModelScope.launch {
+            objectifDao.insertMusculationActivite(musculationActivite)
+        }
+    }
+
+    /**
+     * Transaction complète : Crée l'Activité parent ET les détails MusculationActivite en une fois.
+     * Recalcule ensuite la progression de l'objectif associé.
+     */
+    fun addNewActiviteWithMusculationDetails(activite: Activite, musculationDetails: MusculationActivite) {
+        viewModelScope.launch {
+            // Appel de la transaction dans le DAO
+            objectifDao.insertActiviteWithMusculationDetails(activite, musculationDetails)
+
+            // Mise à jour de la progression de l'objectif parent
+            if (activite.objectifId != null) {
+                recalculateObjectifProgress(activite.objectifId)
+            }
+        }
+    }
+
+    fun updateMusculationActivite(musculationActivite: MusculationActivite) {
+        viewModelScope.launch {
+            objectifDao.updateMusculationActivite(musculationActivite)
+        }
+    }
+
+    fun deleteMusculationActivite(musculationActivite: MusculationActivite) {
+        viewModelScope.launch {
+            objectifDao.deleteMusculationActivite(musculationActivite)
+        }
+    }
+
+    /**
+     * Récupère les détails de musculation pour une activité donnée (LiveData).
+     */
+    fun getMusculationActiviteByActiviteId(activiteId: Long): LiveData<MusculationActivite?> {
+        return objectifDao.getMusculationActiviteByActiviteId(activiteId)
+    }
+
+    /**
+     * Récupère les détails de musculation pour une activité donnée (Flow).
+     */
+    fun getMusculationActiviteByActiviteIdFlow(activiteId: Long): Flow<MusculationActivite?> {
+        return objectifDao.getMusculationActiviteByActiviteIdFlow(activiteId)
+    }
+
+    /**
+     * Récupération unique (Suspend) pour utilisation dans la logique métier.
+     */
+    suspend fun getMusculationActiviteByActiviteIdOnce(activiteId: Long): MusculationActivite? {
+        return objectifDao.getMusculationActiviteByActiviteIdOnce(activiteId)
+    }
+
+    /**
+     * Récupère la liste de tous les détails de musculation liés à un objectif spécifique.
+     */
+    fun getAllMusculationDetailsForObjectif(objectifId: Long): Flow<List<MusculationActivite>> {
+        return objectifDao.getAllMusculationDetailsForObjectif(objectifId)
     }
 
 

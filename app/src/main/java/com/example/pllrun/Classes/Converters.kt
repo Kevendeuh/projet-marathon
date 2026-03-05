@@ -106,7 +106,57 @@ class Converters {
         return TypeObjectif.valueOf(value) // .valueOf() fait la conversion inverse
     }
 
+    // --- Convertisseur pour List<Muscle> ---
+    @TypeConverter
+    fun fromMuscleList(muscles: List<Muscle>?): String {
+        return muscles?.joinToString(",") { it.name } ?: ""
+    }
 
+    @TypeConverter
+    fun toMuscleList(data: String?): List<Muscle> {
+        if (data.isNullOrBlank()) {
+            return emptyList()
+        }
+        return data.split(",").map { Muscle.valueOf(it.trim()) }
+    }
+
+    // --- Convertisseur pour EffortRessenti ---
+    @TypeConverter
+    fun fromEffortRessenti(effort: EffortRessenti?): String? {
+        return effort?.name
+    }
+
+    @TypeConverter
+    fun toEffortRessenti(name: String?): EffortRessenti? {
+        return name?.let { EffortRessenti.valueOf(it) }
+    }
+
+    // --- Convertisseur pour List<Int> (Répétitions par série) ---
+    @TypeConverter
+    fun fromIntList(repetitions: List<Int>?): String {
+        return repetitions?.joinToString(",") ?: ""
+    }
+
+    @TypeConverter
+    fun toIntList(data: String?): List<Int> {
+        if (data.isNullOrBlank()) {
+            return emptyList()
+        }
+        return data.split(",").map { it.toInt() }
+    }
+
+    @TypeConverter
+    fun fromDoubleList(repetitions: List<Double>?): String {
+        return repetitions?.joinToString(",") ?: ""
+    }
+
+    @TypeConverter
+    fun toDoubleList(data: String?): List<Double> {
+        if (data.isNullOrBlank()) {
+            return emptyList()
+        }
+        return data.split(",").map { it.toDouble() }
+    }
     @TypeConverter
     fun fromTypeDecoupage(typeDecoupage: TypeDecoupage): String {
         return typeDecoupage.name // .name retourne le nom de la constante enum ("UNIQUE")
@@ -116,6 +166,22 @@ class Converters {
     fun toTypeDecoupage(value: String): TypeDecoupage {
         return TypeDecoupage.valueOf(value) // .valueOf() fait la conversion inverse
     }
+
+    @TypeConverter
+    fun fromSerieMusculationList(value: List<SerieMusculation>?): String {
+        val gson = Gson()
+        val type = object : TypeToken<List<SerieMusculation>>() {}.type
+        return gson.toJson(value, type)
+    }
+
+    @TypeConverter
+    fun toSerieMusculationList(value: String?): List<SerieMusculation> {
+        if (value == null) return emptyList()
+        val gson = Gson()
+        val type = object : TypeToken<List<SerieMusculation>>() {}.type
+        return gson.fromJson(value, type)
+    }
+
     // --- Convertisseur pour List<String> (Souvent oublié pour les tags/images) ---
     @TypeConverter
     fun fromStringList(value: List<String>?): String {

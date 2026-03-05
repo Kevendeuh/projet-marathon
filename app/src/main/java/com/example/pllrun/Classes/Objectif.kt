@@ -64,6 +64,8 @@ enum class TypeObjectif( val libelle:String,var description:String) {
     MARATHON("Marathon","courir pendant 42km en 6h"),
     ETIREMENT( "Etirements","reussir un grand écart yolo"),
     CARDIO("Cardio","corde a sauter hehe pendant 5 min"),
+
+    MUSCULATION("Musculation", "Soulever de la fonte et progresser"),
     AUTRE( "Autre","rien de spécial")
 }
 
@@ -114,8 +116,6 @@ data class Activite(
     var description: String = "", // Optional description of the activity
     @ColumnInfo(name = "date")
     var date: LocalDate, // The date this activity took place
-    @ColumnInfo(name = "distance_effectuee")
-    var distanceEffectuee: Double, // in km
     @ColumnInfo(name = "temps_effectue")
     var tempsEffectue: Duration,   // actual duration of the run
     @ColumnInfo(name = "type_activite")
@@ -155,6 +155,9 @@ data class CourseActivite(
     @ColumnInfo(name = "vitesse_max")
     val vitesseMax: Double?, // en km/h
 
+    @ColumnInfo(name = "distance_effectuee")
+    var distanceEffectuee: Double, // in km
+
     @ColumnInfo(name = "frequence_cardiaque_moyenne")
     val bpmMoyen: Int?,
 
@@ -176,4 +179,57 @@ data class CourseActivite(
     // Optionnel : Liste des coordonnées GPS pour tracer la route (format JSON String généralement)
     @ColumnInfo(name = "trace_gps_json")
     val traceGpsJson: String? = null
+)
+
+enum class Muscle(val libelle: String) {
+    PECTORAUX("Pectoraux"),
+    DOS("Dos"),
+    EPAULES("Épaules"),BICEPS("Biceps"),
+    TRICEPS("Triceps"),
+    JAMBES("Jambes"),
+    ABDOMINAUX("Abdominaux"),
+    FESSIERS("Fessiers")
+}
+
+enum class EffortRessenti(val libelle: String) {
+    ECHAUFFEMENT("Échauffement"),
+    FACILE("Facile"),
+    MODERE("Modéré"),
+    DIFFICILE("Difficile"),
+    ECHEC("Échec")
+}
+
+data class SerieMusculation(
+    var repetitions: Int,
+    var poidsKg: Double
+)
+@Entity(
+    tableName = "musculation_activite",
+    foreignKeys = [
+        ForeignKey(
+            entity = Activite::class,
+            parentColumns = ["id"],
+            childColumns = ["activiteId"],
+            onDelete = ForeignKey.CASCADE // Si l'activité parente est supprimée, on supprime le détail muscu
+        )
+    ],
+    indices = [androidx.room.Index(value = ["activiteId"], unique = true)] // Une seule MusculationActivite par Activite
+)
+data class MusculationActivite(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+
+    @ColumnInfo(name = "activiteId")
+    val activiteId: Long, // Lien vers l'activité parente
+
+    // --- Détails de l'exercice ---
+
+    @ColumnInfo(name = "muscles_cibles")
+    val musclesCibles: List<Muscle>, // Nécessite un TypeConverter (List -> String)
+
+    @ColumnInfo(name = "series_details")
+    var series: List<SerieMusculation>,
+
+    @ColumnInfo(name = "effort_ressenti")
+    var effortRessenti: EffortRessenti
 )

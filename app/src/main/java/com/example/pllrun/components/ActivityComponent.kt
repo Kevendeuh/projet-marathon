@@ -23,6 +23,8 @@ import androidx.compose.ui.window.Dialog
 import java.time.format.DateTimeFormatter
 import com.example.pllrun.Classes.Activite
 import com.example.pllrun.Classes.CourseActivite
+import com.example.pllrun.Classes.EffortRessenti
+import com.example.pllrun.Classes.MusculationActivite
 import com.example.pllrun.Classes.NiveauExperience
 import com.example.pllrun.Classes.TypeObjectif
 import java.time.Duration
@@ -96,9 +98,10 @@ fun ActivityRow(
 fun ActivityDialog(
     act: Activite,
     initialCourseDetails: CourseActivite? = null,
+    initialMusculationDetails: MusculationActivite? = null,
     onDismiss: () -> Unit,
     isCreationMode: Boolean = false,
-    onSave: (Activite, CourseActivite?) -> Unit,
+    onSave: (Activite, CourseActivite?, MusculationActivite?) -> Unit,
     onDelete: (Activite) -> Unit
 ) {
     // --- 1. ÉTATS DU FORMULAIRE ---
@@ -107,7 +110,6 @@ fun ActivityDialog(
     var description by remember(act) { mutableStateOf(act.description) }
     var date by remember(act) { mutableStateOf(act.date) }
     var heureDeDebut by remember(act) { mutableStateOf(act.heureDeDebut) }
-    var distance by remember(act) { mutableStateOf(act.distanceEffectuee.toString()) }
     var tempsEffectueMinutes by remember(act) { mutableStateOf(act.tempsEffectue.toMinutes().toString()) }
     var estComplete by remember(act) { mutableStateOf(act.estComplete) }
     var niveau by remember(act) { mutableStateOf(act.niveau) }
@@ -116,6 +118,11 @@ fun ActivityDialog(
     // État pour la Course
     var courseDetailsState by remember(initialCourseDetails) {
         mutableStateOf(initialCourseDetails)
+    }
+
+    // État pour la Musculation
+    var musculationDetailsState by remember(initialMusculationDetails) {
+        mutableStateOf(initialMusculationDetails)
     }
     // --- 2. ÉTATS POUR LES PICKERS ---
     var showDatePicker by remember { mutableStateOf(false) }
@@ -186,13 +193,6 @@ fun ActivityDialog(
                     // Ligne pour la distance et le temps
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         OutlinedTextField(
-                            value = distance,
-                            onValueChange = { distance = it },
-                            label = { Text("Distance (km)") },
-                            modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                        )
-                        OutlinedTextField(
                             value = tempsEffectueMinutes,
                             onValueChange = { tempsEffectueMinutes = it },
                             label = { Text("Temps (min)") },
@@ -259,7 +259,9 @@ fun ActivityDialog(
                     SpecificActivityFormContent(
                         type = typeActivite,
                         courseDetails = courseDetailsState,
-                        onCourseDetailsChange = { updated -> courseDetailsState = updated }
+                        musculationDetails = musculationDetailsState,
+                        onCourseDetailsChange = { updated -> courseDetailsState = updated },
+                        onMusculationDetailsChange = { updated -> musculationDetailsState = updated }
                     )
 
 
@@ -271,23 +273,15 @@ fun ActivityDialog(
                         activite = act,
                         onSave = {
                             val updatedActivite = act.copy(
-                                nom = nom,
-                                description = description,
-                                date = date,
+                                nom = nom, description = description, date = date,
                                 heureDeDebut = heureDeDebut,
-                                distanceEffectuee = distance.toDoubleOrNull()
-                                    ?: act.distanceEffectuee,
-                                tempsEffectue = Duration.ofMinutes(
-                                    tempsEffectueMinutes.toLongOrNull()
-                                        ?: act.tempsEffectue.toMinutes()
-                                ),
-                                estComplete = estComplete,
-                                niveau = niveau,
-                                typeActivite = typeActivite
+                                tempsEffectue = Duration.ofMinutes(tempsEffectueMinutes.toLongOrNull() ?: act.tempsEffectue.toMinutes()),
+                                estComplete = estComplete, niveau = niveau, typeActivite = typeActivite
                             )
-                            val specificCourseData =
-                                if (typeActivite == TypeObjectif.COURSE) courseDetailsState else null
-                            onSave(updatedActivite, specificCourseData)
+                            val specificCourseData = if (typeActivite == TypeObjectif.COURSE) courseDetailsState else null
+                            val specificMuscuData = if (typeActivite == TypeObjectif.MUSCULATION) musculationDetailsState else null
+
+                            onSave(updatedActivite, specificCourseData, specificMuscuData)
                         },
                         onDelete = onDelete,
                         onDismiss = onDismiss
@@ -417,11 +411,10 @@ private fun DeleteActivityConfirmationDialog(
 @Composable
 fun SpecificActivityFormContent(
     type: TypeObjectif,
-    // On passe tous les états spécifiques potentiels ici (nullable)
     courseDetails: CourseActivite?,
-    // Callbacks pour chaque type
-    onCourseDetailsChange: (CourseActivite) -> Unit
-    // Pour le futur : onNatationDetailsChange, onMuscuDetailsChange...
+    musculationDetails: MusculationActivite?,
+    onCourseDetailsChange: (CourseActivite) -> Unit,
+    onMusculationDetailsChange: (MusculationActivite) -> Unit
 ) {
     when (type) {
         TypeObjectif.COURSE -> {
@@ -432,6 +425,7 @@ fun SpecificActivityFormContent(
                 vitesseMax = 13.0,
                 bpmMoyen = 130,
                 bpmMax = 200,
+                distanceEffectuee = 10.0,
                 distanceParZoneFc = emptyMap(),
                 tempsParZoneFc = emptyMap(),
                 traceGpsJson = null
@@ -446,6 +440,23 @@ fun SpecificActivityFormContent(
             CourseActivityForm(
                 courseDetails = safeDetails,
                 onCourseDetailsChange = onCourseDetailsChange
+            )
+        }
+        TypeObjectif.MUSCULATION -> {
+            val safeDetails = musculationDetails ?: MusculationActivite(
+                activiteId = 0,
+                musclesCibles = emptyList(),
+                series = emptyList(),
+                effortRessenti = EffortRessenti.ECHAUFFEMENT
+            )
+
+            LaunchedEffect(musculationDetails) {
+                if (musculationDetails == null) onMusculationDetailsChange(safeDetails)
+            }
+
+            MusculationActivityForm(
+                musculationDetails = safeDetails,
+                onDetailsChange = onMusculationDetailsChange
             )
         }
         TypeObjectif.AUTRE -> {

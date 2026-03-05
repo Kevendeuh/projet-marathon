@@ -93,6 +93,8 @@ dependencies {
     implementation(libs.places)
     implementation(libs.gms.play.services.wearable)
     implementation(libs.androidx.datastore.core)
+    implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.compose.remote.creation.core)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

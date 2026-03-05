@@ -10,9 +10,10 @@ import androidx.room.TypeConverters
         Objectif::class,
         Activite::class,
         CourseActivite::class,
+        MusculationActivite::class,
         HeartRateMeasurement::class,
         Recette::class]
-    , version = 2, exportSchema = false)
+    , version = 1, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class InventaireRoomDatabase : RoomDatabase() {
 

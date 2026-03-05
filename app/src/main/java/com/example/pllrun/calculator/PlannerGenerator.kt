@@ -1,6 +1,7 @@
 package com.example.pllrun.calculator
 
 import com.example.pllrun.Classes.Activite
+import com.example.pllrun.Classes.CourseActivite
 import com.example.pllrun.Classes.Objectif
 import com.example.pllrun.Classes.TypeObjectif
 import com.example.pllrun.Classes.Utilisateur
@@ -18,13 +19,14 @@ object PlannerGenerator {
      * @param user Les données physiologiques et disponibilités de l'utilisateur.
      * @return Une liste d'activités planifiées prêtes à être insérées en BDD.
      */
-    fun generatePlan(objectif: Objectif, user: Utilisateur): List<Activite> {
+    fun generatePlan(objectif: Objectif, user: Utilisateur): List<Pair<Activite, CourseActivite?>> {
 
         // 1. Sélection de la stratégie
         val strategy: IPlanStrategy = when (objectif.type) {
             TypeObjectif.MARATHON -> MarathonStrategy()
             TypeObjectif.COURSE -> CourseStrategy()
             TypeObjectif.CARDIO -> CardioStrategy()
+            TypeObjectif.MUSCULATION -> MusculationStrategy()
             TypeObjectif.ETIREMENT,
             TypeObjectif.AUTRE -> DefaultStrategy()
         }

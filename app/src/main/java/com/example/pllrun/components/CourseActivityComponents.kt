@@ -63,6 +63,22 @@ fun CourseActivityForm(
                 modifier = Modifier.weight(1f)
             )
         }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+
+            OutlinedTextField(
+                value = courseDetails.distanceEffectuee.toString() ?: "",
+                onValueChange = {
+                    val v = it.toDoubleOrNull(); onCourseDetailsChange(
+                    courseDetails.copy(
+                        distanceEffectuee = v ?: 0.0
+                    )
+                )
+                },
+                label = { Text("Distance (km)") },
+                modifier = Modifier.weight(1f),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+        }
 
         // --- Zones de FC (Distance) ---
         Text("Distances par Zone (km)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)

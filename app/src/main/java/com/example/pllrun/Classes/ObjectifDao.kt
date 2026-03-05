@@ -153,8 +153,59 @@ interface ObjectifDao {
         insertCourseActivite(detailsWithId)
     }
 
-    // Helper pour la transaction ci-dessus (si votre insertActivite actuel ne retourne rien)
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertActiviteReturnId(activite: Activite): Long
+
+// ---------------------------------------------------------
+    // GESTION DE L'ENTITÉ MusculationActivite
+    // ---------------------------------------------------------
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMusculationActivite(musculationActivite: MusculationActivite)
+
+    @Update
+    suspend fun updateMusculationActivite(musculationActivite: MusculationActivite)
+
+    @Delete
+    suspend fun deleteMusculationActivite(musculationActivite: MusculationActivite)
+
+    // Récupération par ID de l'activité parente (LiveData - pour l'UI XML ou observeAsState)
+    @Query("SELECT * FROM musculation_activite WHERE activiteId = :activiteId")
+    fun getMusculationActiviteByActiviteId(activiteId: Long): LiveData<MusculationActivite?>
+
+    // Récupération par ID de l'activité parente (Flow - recommandé pour Compose)
+    @Query("SELECT * FROM musculation_activite WHERE activiteId = :activiteId")
+    fun getMusculationActiviteByActiviteIdFlow(activiteId: Long): Flow<MusculationActivite?>
+
+    // Récupération unique (Suspend - pour la logique métier ou les workers)
+    @Query("SELECT * FROM musculation_activite WHERE activiteId = :activiteId")
+    suspend fun getMusculationActiviteByActiviteIdOnce(activiteId: Long): MusculationActivite?
+
+    // Récupérer toutes les données de musculation associées à un objectif (via jointure)
+    // Utile pour calculer le volume total soulevé ou l'évolution des poids
+    @Query("""
+        SELECT MA.* FROM musculation_activite MA 
+        INNER JOIN activite A ON MA.activiteId = A.id 
+        WHERE A.objectifId = :objectifId
+    """)
+    fun getAllMusculationDetailsForObjectif(objectifId: Long): Flow<List<MusculationActivite>>
+
+    /**
+     * TRANSACTION : Insère une activité ET ses détails de musculation en même temps.
+     * 1. Insère l'activité et récupère son nouvel ID (via insertActiviteReturnId existant).
+     * 2. Assigne cet ID à l'objet MusculationActivite.
+     * 3. Insère le MusculationActivite.
+     */
+    @Transaction
+    suspend fun insertActiviteWithMusculationDetails(activite: Activite, musculationDetails: MusculationActivite) {
+        // On insère d'abord l'activité parente et on récupère l'ID généré
+        val activiteId = insertActiviteReturnId(activite)
+
+        // On crée une copie des détails avec le bon ID parent
+        val detailsWithId = musculationDetails.copy(activiteId = activiteId)
+
+        // On insère les détails
+        insertMusculationActivite(detailsWithId)
+    }
 
 }

@@ -2,7 +2,6 @@ package com.example.pllrun.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.forEach
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,7 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Button
@@ -42,7 +40,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.pllrun.Classes.Utilisateur
 import com.example.pllrun.InventaireViewModel
 import com.example.pllrun.R
 import com.example.pllrun.components.ObjectifEditDialog
@@ -51,15 +48,12 @@ import java.time.LocalTime
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.MonitorHeart
-
 import androidx.compose.runtime.livedata.observeAsState
 import java.time.format.DateTimeFormatter
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshots.toInt
-import androidx.compose.ui.geometry.isEmpty
-import androidx.compose.ui.graphics.Shape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import com.example.pllrun.Classes.Activite
 import com.example.pllrun.Classes.HeartRateMeasurement
 import com.example.pllrun.Classes.TypeObjectif
@@ -75,7 +69,6 @@ import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesian
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
 import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
-import com.patrykandpatrick.vico.core.cartesian.CartesianChart
 import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
@@ -86,7 +79,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.LocalDate
-import kotlin.math.round
 
 @Composable
 fun HubScreen(
@@ -99,7 +91,6 @@ fun HubScreen(
     // --- GESTION DES ÉTATS DE L'UI POUR LES DIALOGUES ---
     var objectifToEditId by remember { mutableStateOf<Long?>(null) }
     var activiteToEdit by remember { mutableStateOf<Activite?>(null) } // État pour le dialogue d'activité
-    // AJOUT : État pour afficher la popup de création d'activite
     var showAddActivityDialog by remember { mutableStateOf(false) }
 
     val utilisateurPrincipal by viewModel.getFirstUtilisateur().observeAsState(initial = null)
@@ -109,31 +100,25 @@ fun HubScreen(
     val suggestionRepas by viewModel.suggestionRepas.collectAsState()
     val isLoadingSuggestion by viewModel.isLoadingSuggestion.collectAsState()
 
-
     val sleepMinutes by viewModel.getRecommendedSleepTime(utilisateurPrincipal?.id ?: -1).observeAsState(0L)
     val bedtime by viewModel.getRecommendedBedtime(utilisateurPrincipal?.id ?: -1).observeAsState(LocalTime.of(22, 0))
     val nutriments by viewModel.getRecommendedNutriments(utilisateurPrincipal?.id ?: -1).observeAsState(ApportsNutritionnels(0F,0F,0F,0F))
     val bpmHistory by viewModel.bpmHistory.collectAsState(initial = emptyList())
-    // --- 2. FORMATAGE DES DONNÉES ---
+
+    // --- FORMATAGE DES DONNÉES ---
     val (tempsSommeilSuggere, heureCoucheSuggeree) = remember(sleepMinutes, bedtime) {
         val formattedSleepTime = if (sleepMinutes > 0) "${sleepMinutes / 60}h ${sleepMinutes % 60}min" else "N/A"
         val formattedBedtime = bedtime.format(DateTimeFormatter.ofPattern("HH:mm"))
         Pair(formattedSleepTime, formattedBedtime)
     }
 
-
-
-
     // --- STRUCTURE PRINCIPALE AVEC BOX ---
-
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-
         // --- 1. CONTENU PRINCIPAL (HEADER + LISTE SCROLLABLE) ---
-        // Cette Column contient le header et la liste.
         Column(modifier = Modifier.fillMaxSize()) {
 
             // --- HEADER ---
@@ -155,7 +140,7 @@ fun HubScreen(
                     Text(
                         text = "Modifier profil",
                         fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.primaryContainer// Orange
+                        color = MaterialTheme.colorScheme.primaryContainer
                     )
                 }
             }
@@ -163,9 +148,8 @@ fun HubScreen(
             // --- CONTENU SCROLLABLE ---
             LazyColumn(
                 modifier = Modifier
-                    .weight(1f) // Prend tout l'espace restant dans la Column
+                    .weight(1f)
                     .padding(horizontal = 24.dp),
-                // Ajoute un padding en bas pour que le dernier élément ne soit pas caché par le bouton
                 contentPadding = PaddingValues(bottom = 100.dp)
             ) {
                 item { Spacer(modifier = Modifier.height(16.dp)) }
@@ -181,7 +165,7 @@ fun HubScreen(
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_flag),
                                 contentDescription = "Icône d'objectif",
-                                tint = MaterialTheme.colorScheme.primaryContainer// Couleur orange
+                                tint = MaterialTheme.colorScheme.primaryContainer
                             )
                         },
                     ) {
@@ -221,6 +205,7 @@ fun HubScreen(
                         }
                     }
                 }
+
                 // --- SECTION CONSEILS SANTÉ ---
                 item {
                     Text(
@@ -239,33 +224,28 @@ fun HubScreen(
                             .padding(bottom = 32.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        var descriptionSommeil =
-                            "estimation impossible veuillez renseigner utilisateur"
+                        var descriptionSommeil = "estimation impossible veuillez renseigner utilisateur"
                         if (tempsSommeilSuggere != null) {
-                            descriptionSommeil =
-                                " temps de sommeil suggéré:$tempsSommeilSuggere \n heure de couche suggérée:$heureCoucheSuggeree"
+                            descriptionSommeil = " temps de sommeil suggéré:$tempsSommeilSuggere \n heure de couche suggérée:$heureCoucheSuggeree"
                         }
                         TaskCard(
                             title = "Sommeil",
-                            // AJOUT : Passage de l'icône
                             icon = {
                                 Icon(
                                     imageVector = Icons.Default.Bedtime,
                                     contentDescription = "Icône de sommeil",
-                                    tint = MaterialTheme.colorScheme.primaryContainer// Couleur orange
+                                    tint = MaterialTheme.colorScheme.primaryContainer
                                 )
                             },
                             onThreeDotsClick = { /* TODO: Naviguer vers écran sommeil */ },
                             modifier = Modifier.weight(1f)
-                        )
-                        {
+                        ) {
                             Text(
                                 text = descriptionSommeil,
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-
 
                         TaskCard(
                             title = "À Manger",
@@ -281,59 +261,48 @@ fun HubScreen(
                         ) {
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalAlignment = Alignment.Start, // Aligner le texte à gauche
-                                verticalArrangement = Arrangement.spacedBy(8.dp) // Espace entre les éléments
+                                horizontalAlignment = Alignment.Start,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                // 1. Informations nutritionnelles de base
                                 if (utilisateurPrincipal != null && nutriments.calories > 0) {
                                     Column {
-                                        Text(
-                                            "${nutriments.calories.toInt()} kcal",
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
+                                        Text("${nutriments.calories.toInt()} kcal", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                                         Text(
                                             "P: ${nutriments.proteines.toInt()}g | G: ${nutriments.glucides.toInt()}g | L: ${nutriments.lipides.toInt()}g",
                                             fontSize = 12.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            lineHeight = 14.sp // Améliore la lisibilité
+                                            lineHeight = 14.sp
                                         )
                                     }
                                 } else {
                                     Text("N/A", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
 
-                                Spacer(modifier = Modifier.height(8.dp)) // Espace avant le bouton
+                                Spacer(modifier = Modifier.height(8.dp))
 
-                                // 2. Bouton pour générer une suggestion
                                 utilisateurPrincipal?.let { user ->
                                     Button(
                                         onClick = { viewModel.genererSuggestionRepas(user) },
-                                        enabled = !isLoadingSuggestion, // Désactivé pendant le chargement
+                                        enabled = !isLoadingSuggestion,
                                         modifier = Modifier.fillMaxWidth(),
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                                     ) {
-                                        Text("Idée repas", fontSize = 12.sp) // Texte plus petit pour un bouton compact
+                                        Text("Idée repas", fontSize = 12.sp)
                                     }
                                 }
 
-                                // 3. Barre de chargement et output de la suggestion
                                 if (isLoadingSuggestion) {
-                                    // Centre la barre de chargement
                                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
                                     }
                                 } else if (!suggestionRepas.isNullOrBlank()) {
-                                    // 4. Affiche l'output généré
                                     Text(
                                         text = suggestionRepas!!,
-                                        style = MaterialTheme.typography.bodySmall, // Style plus petit
+                                        style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.padding(top = 4.dp)
                                     )
-                                    // 4. BOUTON SAUVEGARDER (NOUVEL AJOUT)
-                                    // Ce bouton n'apparaît que si la suggestion est présente et qu'on n'est pas en chargement
-                                    Spacer(modifier = Modifier.height(8.dp)) // Espace avant le bouton
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     Button(
                                         onClick = { viewModel.saveSuggestionAsRecette(suggestionRepas!!) },
                                         modifier = Modifier.fillMaxWidth(),
@@ -368,7 +337,6 @@ fun HubScreen(
                     }
                 }
                 item { Spacer(modifier = Modifier.height(20.dp)) }
-
             }
         }
 
@@ -379,34 +347,24 @@ fun HubScreen(
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp) // Espace entre les boutons
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // BOUTON 1 : Ajouter Activité
             Button(
                 onClick = { showAddActivityDialog = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer, // Couleur différente (ex: secondaire)
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                 ),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
             ) {
-                Text(
-                    text = "Ajouter Activité",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Ajouter Activité", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
 
-            // BOUTON 2 : Ajouter Objectif
             Button(
                 onClick = onAddGoal,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -421,9 +379,7 @@ fun HubScreen(
                 )
             }
         }
-
     }
-
 
     // --- AFFICHAGE CONDITIONNEL DES DIALOGUES ---
 
@@ -438,77 +394,79 @@ fun HubScreen(
 
     // 2. Dialogue d'édition d'activité
     activiteToEdit?.let { activite ->
-        // Astuce : Chargez les détails spécifiques AVANT d'ouvrir le dialogue ou observez-les
-        // Pour simplifier ici, imaginons que vous les ayez récupérés via le ViewModel
+        // On écoute en temps réel les détails de course ET de musculation
         val courseDetails by viewModel.getCourseActiviteByActiviteIdFlow(activite.id).collectAsState(initial = null)
+        val musculationDetails by viewModel.getMusculationActiviteByActiviteIdFlow(activite.id).collectAsState(initial = null)
 
         ActivityDialog(
             act = activite,
-            initialCourseDetails = courseDetails, // On passe les données existantes
+            initialCourseDetails = courseDetails,
+            initialMusculationDetails = musculationDetails, // <-- AJOUT ICI
             isCreationMode = false,
             onDismiss = { activiteToEdit = null },
             onDelete = { toDelete ->
                 viewModel.deleteActivite(toDelete)
                 activiteToEdit = null
             },
-            onSave = { activiteMaj, detailsCourseMaj ->
+            onSave = { activiteMaj, detailsCourseMaj, detailsMuscuMaj -> // <-- MISE A JOUR SIGNATURE
                 viewModel.updateActivite(activiteMaj)
 
+                // Mise à jour de la course
                 if (detailsCourseMaj != null) {
-                    // Si l'ID existe déjà, update, sinon insert
                     if (detailsCourseMaj.id != 0L) {
                         viewModel.updateCourseActivite(detailsCourseMaj)
                     } else {
-                        // Cas rare où on ajoute des détails à une activité qui n'en avait pas
                         viewModel.insertCourseActivite(detailsCourseMaj.copy(activiteId = activiteMaj.id))
                     }
                 }
+
+                // Mise à jour de la musculation
+                if (detailsMuscuMaj != null) {
+                    if (detailsMuscuMaj.id != 0L) {
+                        viewModel.updateMusculationActivite(detailsMuscuMaj)
+                    } else {
+                        viewModel.insertMusculationActivite(detailsMuscuMaj.copy(activiteId = activiteMaj.id))
+                    }
+                }
+
                 activiteToEdit = null
             }
         )
     }
 
-
-    // 3. AJOUT : Dialogue de CRÉATION d'activité
+    // 3. Dialogue de CRÉATION d'activité
     if (showAddActivityDialog) {
-        // On crée une activité vide par défaut (ID = 0 pour que Room sache qu'il faut insérer)
-        // Vérifiez que ce constructeur correspond bien à votre Data Class Activite
         val newActivity = Activite(
             id = 0,
-            objectifId = null, // Pas d'objectif lié par défaut
+            objectifId = null,
             date = LocalDate.now(),
             heureDeDebut = LocalTime.now(),
-            typeActivite = TypeObjectif.COURSE, // Type par défaut (à adapter selon votre Enum)
+            typeActivite = TypeObjectif.COURSE,
             estComplete = false,
             nom = "",
             description = TypeObjectif.COURSE.description,
-            distanceEffectuee =10.0,
-            tempsEffectue =  Duration.ofMinutes(30),
+            tempsEffectue = Duration.ofMinutes(30),
             niveau = NiveauExperience.DEBUTANT
         )
 
         ActivityDialog(
             act = newActivity,
             onDismiss = { showAddActivityDialog = false },
-            onSave = { activiteCreee, detailsCourse ->
-                // C'est ici que la magie opère : le ViewModel gère l'insertion intelligente
+            onSave = { activiteCreee, detailsCourse, detailsMuscu -> // <-- MISE A JOUR SIGNATURE
+                // Le ViewModel gère l'insertion avec transaction selon le type de données retourné
                 if (detailsCourse != null) {
-                    // Transaction Activité + Course
                     viewModel.addNewActiviteWithCourseDetails(activiteCreee, detailsCourse)
+                } else if (detailsMuscu != null) {
+                    viewModel.addNewActiviteWithMusculationDetails(activiteCreee, detailsMuscu)
                 } else {
-                    // Activité simple
                     viewModel.addNewActivite(activiteCreee)
                 }
                 showAddActivityDialog = false
             },
-            // Pas de suppression possible lors de la création
             onDelete = { }
         )
     }
 }
-
-
-// Dans HubScreen.kt
 
 // Composant réutilisable pour les cartes de tâches
 @Composable
@@ -516,7 +474,6 @@ fun TaskCard(
     title: String,
     onThreeDotsClick: () -> Unit,
     modifier: Modifier = Modifier,
-    // AJOUT : Paramètre optionnel pour l'icône
     icon: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -524,7 +481,7 @@ fun TaskCard(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor =MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -533,17 +490,14 @@ fun TaskCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // MODIFICATION : Le titre est maintenant dans un Row pour accueillir l'icône
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 8.dp)
             ) {
-                // Affiche l'icône si elle est fournie
                 icon?.let {
-                    it() // Exécute le Composable de l'icône
-                    Spacer(modifier = Modifier.width(8.dp)) // Espace entre l'icône et le titre
+                    it()
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
-                // Titre de la carte
                 Text(
                     text = title,
                     fontSize = 18.sp,
@@ -553,9 +507,8 @@ fun TaskCard(
             }
 
             content()
-            Spacer(modifier = Modifier.height(16.dp)) // Ajout d'un espace avant les points
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Ligne des trois points en bas
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
@@ -581,8 +534,6 @@ fun TaskCard(
             }
         }
     }
-
-
 }
 
 @Composable
@@ -590,33 +541,22 @@ fun HeartRateGraphContent(
     data: List<HeartRateMeasurement>,
     modifier: Modifier = Modifier
 ) {
-
-    // 1. Créer un "Producer" pour les données de Vico
     val modelProducer = remember { CartesianChartModelProducer() }
 
-    // 2. Charger les données de manière asynchrone
     LaunchedEffect(data) {
         if (data.isNotEmpty()) {
             withContext(Dispatchers.Default) {
                 val sortedData = data.sortedBy { it.timestamp }
                 modelProducer.runTransaction {
-                    // On mappe vos objets HeartRateMeasurement vers des séries de colonnes
-                    // x = timestamp (ou index), y = bpm
                     columnSeries {
                         series(
-                            // AXE X : On place les points précisément à leur heure (ex: 14h30 = 14.5)
                             x = sortedData.map { measurement ->
                                 val instant = java.time.Instant.ofEpochMilli(measurement.timestamp)
                                 val zdt = java.time.ZonedDateTime.ofInstant(
                                     instant,
                                     java.time.ZoneId.systemDefault()
                                 )
-
-                                // Calcul de l'heure décimale
                                 val decimalHour = zdt.hour + (zdt.minute / 60.0)
-
-                                // CORRECTION : On arrondit à 2 décimales pour éviter l'erreur "too precise"
-                                // (ex: 14.333333 -> 14.33)
                                 (decimalHour * 100).toInt() / 100.0
                             },
                             y = data.map { it.bpm },
@@ -627,12 +567,9 @@ fun HeartRateGraphContent(
         }
     }
 
-    // 3. Afficher le graphique
     if (data.isNotEmpty()) {
         CartesianChartHost(
             chart = rememberCartesianChart(
-                // --- C'EST ICI QUE C'ETAIT MANQUANT ---
-                // Il faut dire au graphique de dessiner des COLONNES
                 rememberColumnCartesianLayer(
                     ColumnCartesianLayer.ColumnProvider.series(
                         rememberLineComponent(
@@ -641,18 +578,9 @@ fun HeartRateGraphContent(
                         )
                     )
                 ),
-                // --------------------------------------
-
                 startAxis = VerticalAxis.rememberStart(),
-                // --- AXE X (Abscisses - FIXE 0h-23h) ---
                 bottomAxis = HorizontalAxis.rememberBottom(
-                    // 1. Formatter : Convertit le chiffre (0, 6, 12...) en texte ("0h", "6h"...)
-                    valueFormatter = { _, value, _ ->
-                        "${value.toInt()}h"
-                    },
-                    // 2. ItemPlacer : C'est ici qu'on force l'affichage régulier
-                    // On demande un label toutes les 4 heures (0h, 4h, 8h...) pour ne pas surcharger
-                    // et un "shift" de 1 pour bien gérer les bords.
+                    valueFormatter = { _, value, _ -> "${value.toInt()}h" },
                     itemPlacer = remember {
                         HorizontalAxis.ItemPlacer.aligned(spacing = { 4 }, addExtremeLabelPadding = true)
                     }
@@ -665,8 +593,4 @@ fun HeartRateGraphContent(
     } else {
         Text("Pas de données")
     }
-
-
 }
-
-
