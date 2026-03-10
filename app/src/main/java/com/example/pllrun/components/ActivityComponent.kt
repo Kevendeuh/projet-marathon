@@ -1,5 +1,6 @@
 package com.example.pllrun.components
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,6 +11,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
+import kotlin.let
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
@@ -27,7 +31,13 @@ import com.example.pllrun.Classes.EffortRessenti
 import com.example.pllrun.Classes.MusculationActivite
 import com.example.pllrun.Classes.NiveauExperience
 import com.example.pllrun.Classes.TypeObjectif
+import com.example.pllrun.InventaireViewModel
 import java.time.Duration
+import kotlin.collections.emptyList
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.livedata.observeAsState
+import kotlinx.coroutines.coroutineScope
+
 
 @Composable
 fun ActivityRow(
@@ -82,14 +92,14 @@ fun ActivityRow(
             }
 
             // Icon crayon
-                Icon(
-                    imageVector = Icons.Filled.Edit,
-                    contentDescription = "Modifier l’activité"
-                )
-
+            Icon(
+                imageVector = Icons.Filled.Edit,
+                contentDescription = "Modifier l’activité"
+            )
         }
     }
 }
+
 /**
  * Boîte de dialogue modale pour modifier tous les champs d'une activité.
  */
@@ -97,6 +107,7 @@ fun ActivityRow(
 @Composable
 fun ActivityDialog(
     act: Activite,
+    viewModel: InventaireViewModel? = null,
     initialCourseDetails: CourseActivite? = null,
     initialMusculationDetails: MusculationActivite? = null,
     onDismiss: () -> Unit,
@@ -105,7 +116,6 @@ fun ActivityDialog(
     onDelete: (Activite) -> Unit
 ) {
     // --- 1. ÉTATS DU FORMULAIRE ---
-    // On utilise `remember` avec `act` comme clé pour réinitialiser les états si l'activité change.
     var nom by remember(act) { mutableStateOf(act.nom) }
     var description by remember(act) { mutableStateOf(act.description) }
     var date by remember(act) { mutableStateOf(act.date) }
@@ -115,28 +125,40 @@ fun ActivityDialog(
     var niveau by remember(act) { mutableStateOf(act.niveau) }
     var typeActivite by remember(act) { mutableStateOf(act.typeActivite) }
 
-    // État pour la Course
-    var courseDetailsState by remember(initialCourseDetails) {
-        mutableStateOf(initialCourseDetails)
-    }
+    var courseDetailsState by remember(initialCourseDetails) { mutableStateOf(initialCourseDetails) }
+    var musculationDetailsState by remember(initialMusculationDetails) { mutableStateOf(initialMusculationDetails) }
 
-    // État pour la Musculation
-    var musculationDetailsState by remember(initialMusculationDetails) {
-        mutableStateOf(initialMusculationDetails)
+    // --- LOGIQUE AUTO-COMPLETE ---
+
+    // 1. Écoute réactive propre via LiveData
+    val allNames by (viewModel?.getDistinctActiviteNames()?.observeAsState(initial = emptyList())
+        ?: remember { mutableStateOf(emptyList()) })
+
+    var expandedNom by remember { mutableStateOf(false) }
+
+    // 2. Filtrage optimisé (limité à 5 résultats)
+    val filteredNames = remember(nom, allNames) {
+        if (nom.isEmpty()) {
+            allNames.take(5)
+        } else {
+            allNames.filter { it.contains(nom, ignoreCase = true) }.take(5)
+        }
     }
-    // --- 2. ÉTATS POUR LES PICKERS ---
+    // On récupère TOUTES les activités pour voir si la base est vraiment vide
+    val toutesLesActivites by (viewModel?.getAllActivites()?.observeAsState(initial = emptyList())
+        ?: remember { mutableStateOf(emptyList()) })
+    val coroutineScope = rememberCoroutineScope()
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy") }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
 
-    // --- DIALOGUE PRINCIPAL ---
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 32.dp),
+                .padding(vertical = 16.dp), // Reduced padding to fit better on small screens
             shape = RoundedCornerShape(16.dp),
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
@@ -146,19 +168,83 @@ fun ActivityDialog(
                     modifier = Modifier.padding(bottom = 20.dp)
                 )
 
-                // --- FORMULAIRE SCROLLABLE ---
                 Column(
                     modifier = Modifier
-                        .weight(1f, fill = false) // Pour que la colonne ne prenne que la place nécessaire et scrolle
+                        .weight(1f, fill = false)
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
-                        value = nom,
-                        onValueChange = { nom = it },
-                        label = { Text("Nom de l'activité") },
+                    // --- NOM FIELD WITH IMPROVED DROPDOWN ---
+                    ExposedDropdownMenuBox(
+                        expanded = expandedNom && filteredNames.isNotEmpty(),
+                        onExpandedChange = { expandedNom = it },
                         modifier = Modifier.fillMaxWidth()
-                    )
+                    ) {
+                            OutlinedTextField(
+                                value = nom,
+                                onValueChange = {
+                                    nom = it
+                                    expandedNom = true
+                                },
+                                //label = { Text("Nom de l'activité") },
+                                label = {
+                                    Text("Noms uniques: ${allNames.size} | Activités totales DB: ${toutesLesActivites.size}")
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(), // CRITICAL: This attaches the menu to the field
+                                trailingIcon = {
+                                    // Using the standard trailing icon which handles rotation
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedNom)
+                                },
+                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                            )
+                        if (filteredNames.isNotEmpty()) {
+                            ExposedDropdownMenu(
+                                expanded = expandedNom,
+                                onDismissRequest = { expandedNom = false }
+                            ) {
+                                filteredNames.forEach { name ->
+                                    DropdownMenuItem(
+                                        text = { Text(name) },
+                                        onClick = {
+                                            nom = name
+                                            expandedNom = false
+
+                                            // Récupération des détails pour le nom sélectionné
+                                            viewModel?.let { vm ->
+                                                coroutineScope.launch {
+                                                    val last = vm.getLastActiviteByName(name)
+                                                    last?.let {
+                                                        description = it.description
+                                                        typeActivite = it.typeActivite
+                                                        niveau = it.niveau
+                                                        tempsEffectueMinutes = it.tempsEffectue.toMinutes().toString()
+
+                                                        // Chargement des sous-détails selon le type (Course ou Muscu)
+                                                        if (it.typeActivite == TypeObjectif.COURSE) {
+                                                            courseDetailsState = vm.getCourseActiviteByActiviteIdOnce(it.id)?.copy(id = 0, activiteId = 0)
+                                                            musculationDetailsState = null
+                                                        } else if (it.typeActivite == TypeObjectif.MUSCULATION) {
+                                                            musculationDetailsState = vm.getMusculationActiviteByActiviteIdOnce(it.id)?.copy(id = 0, activiteId = 0)
+                                                            courseDetailsState = null
+                                                        } else {
+                                                            courseDetailsState = null
+                                                            musculationDetailsState = null
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                    )
+                                }
+                            }
+                        }
+
+                        }
+
+
 
                     OutlinedTextField(
                         value = description,
@@ -168,115 +254,101 @@ fun ActivityDialog(
                         maxLines = 3
                     )
 
-                    // Ligne pour la date et l'heure
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        // Champ Date
-
                         ReadOnlyField(
                             value = date.format(dateFormatter),
                             label = "Date",
                             modifier = Modifier.weight(1f),
                             onClick = { showDatePicker = true }
                         )
-
-                        // Champ Heure
                         ReadOnlyField(
                             value = heureDeDebut.format(timeFormatter),
                             label = "Heure",
                             modifier = Modifier.weight(1f),
                             onClick = { showTimePicker = true }
-
-                        )
-
-                    }
-
-                    // Ligne pour la distance et le temps
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        OutlinedTextField(
-                            value = tempsEffectueMinutes,
-                            onValueChange = { tempsEffectueMinutes = it },
-                            label = { Text("Temps (min)") },
-                            modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                         )
                     }
 
-                    // --- SÉLECTEUR DE TYPE D'ACTIVITÉ (Dropdown) ---
+                    OutlinedTextField(
+                        value = tempsEffectueMinutes,
+                        onValueChange = { tempsEffectueMinutes = it },
+                        label = { Text("Temps (min)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+
+                    // --- TYPE SELECTOR ---
                     var expandedType by remember { mutableStateOf(false) }
-
                     ExposedDropdownMenuBox(
                         expanded = expandedType,
-                        onExpandedChange = { expandedType = !expandedType },
-                        modifier = Modifier.fillMaxWidth()
+                        onExpandedChange = { expandedType = !expandedType }
                     ) {
                         OutlinedTextField(
-                            value = typeActivite.name, // Affiche le nom de l'enum (ex: COURSE)
+                            value = typeActivite.name,
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Type d'activité") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedType) },
                             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth()
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
-
                         ExposedDropdownMenu(
                             expanded = expandedType,
                             onDismissRequest = { expandedType = false }
                         ) {
-                            // On parcourt toutes les valeurs de l'enum TypeObjectif
                             TypeObjectif.entries.forEach { type ->
                                 DropdownMenuItem(
-                                    text = { Text(text = type.name) },
+                                    text = { Text(type.name) },
                                     onClick = {
                                         typeActivite = type
-                                        // Si on passe sur AUTRE ou un type sans détails, on peut vouloir nettoyer courseDetailsState
-                                        // Mais pour l'instant, le SpecificActivityFormContent gère la création si nécessaire.
                                         expandedType = false
+                                        // Reset other details when changing type to avoid data corruption
+                                        if (type != TypeObjectif.COURSE) courseDetailsState = null
+                                        if (type != TypeObjectif.MUSCULATION) musculationDetailsState = null
                                     }
                                 )
                             }
                         }
                     }
 
-// --- SÉLECTEUR DE NIVEAU (Dropdown) ---
-
                     ExposedDropdownMenuComponent(
                         label = "Niveau",
-                        items = NiveauExperience.values().map { it.name },
+                        items = NiveauExperience.entries.map { it.name },
                         selectedItem = niveau.name,
                         onItemSelected = { selectedString ->
                             niveau = NiveauExperience.valueOf(selectedString)
                         }
                     )
 
-                    // CHAMP VALIDATION
                     ValidationField(
                         isValid = estComplete,
                         onStateChange = { estComplete = it }
                     )
+
+                    // --- INJECTS CUSTOM FORMS (Course/Musculation) ---
                     SpecificActivityFormContent(
                         type = typeActivite,
                         courseDetails = courseDetailsState,
                         musculationDetails = musculationDetailsState,
-                        onCourseDetailsChange = { updated -> courseDetailsState = updated },
-                        onMusculationDetailsChange = { updated -> musculationDetailsState = updated }
+                        onCourseDetailsChange = { courseDetailsState = it },
+                        onMusculationDetailsChange = { musculationDetailsState = it }
                     )
-
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // --- BOUTONS D'ACTION ---
                     ActionButtons(
                         isCreationMode = isCreationMode,
                         activite = act,
                         onSave = {
                             val updatedActivite = act.copy(
-                                nom = nom, description = description, date = date,
+                                nom = nom,
+                                description = description,
+                                date = date,
                                 heureDeDebut = heureDeDebut,
-                                tempsEffectue = Duration.ofMinutes(tempsEffectueMinutes.toLongOrNull() ?: act.tempsEffectue.toMinutes()),
-                                estComplete = estComplete, niveau = niveau, typeActivite = typeActivite
+                                tempsEffectue = Duration.ofMinutes(tempsEffectueMinutes.toLongOrNull() ?: 0),
+                                estComplete = estComplete,
+                                niveau = niveau,
+                                typeActivite = typeActivite
                             )
                             val specificCourseData = if (typeActivite == TypeObjectif.COURSE) courseDetailsState else null
                             val specificMuscuData = if (typeActivite == TypeObjectif.MUSCULATION) musculationDetailsState else null
@@ -287,39 +359,28 @@ fun ActivityDialog(
                         onDismiss = onDismiss
                     )
                 }
-                }
             }
         }
+    }
 
-
-    // --- PICKERS DE DATE ET HEURE ---
+    // Pickers stay the same...
     if (showDatePicker) {
         DatePickerComponent(
             initialDate = date,
-            onDateSelected = { newDate ->
-                date = newDate
-                showDatePicker = false
-            },
+            onDateSelected = { date = it; showDatePicker = false },
             onDismiss = { showDatePicker = false }
         )
     }
     if (showTimePicker) {
         TimePickerDialog(
             onDismiss = { showTimePicker = false },
-            onConfirm = { newTime ->
-                heureDeDebut = newTime
-                showTimePicker = false
-            }
+            onConfirm = { heureDeDebut = it; showTimePicker = false }
         )
     }
 }
-
-/**
- * Section des boutons d'action pour le dialogue d'activité.
- */
 @Composable
 private fun ActionButtons(
-    isCreationMode : Boolean=false,
+    isCreationMode : Boolean = false,
     activite: Activite,
     onSave: () -> Unit,
     onDelete: (Activite) -> Unit,
@@ -327,31 +388,30 @@ private fun ActionButtons(
 ) {
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
-
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.End,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // --- BOUTON SUPPRIMER ---
-        Button(
-            onClick = { showDeleteConfirmDialog = true },
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+        if (!isCreationMode) {
+            Button(
+                onClick = { showDeleteConfirmDialog = true },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Supprimer l'activité"
-                )
-                Text("Supprimer l'activité")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Supprimer l'activité"
+                    )
+                    Text("Supprimer l'activité")
+                }
             }
         }
 
-        // --- BOUTONS ANNULER ET ENREGISTRER ---
         Row {
             TextButton(onClick = onDismiss) {
                 Text("Annuler")
@@ -363,7 +423,6 @@ private fun ActionButtons(
         }
     }
 
-    // --- POPUP DE CONFIRMATION DE SUPPRESSION ---
     if (showDeleteConfirmDialog) {
         DeleteActivityConfirmationDialog(
             onDismiss = { showDeleteConfirmDialog = false },
@@ -375,9 +434,6 @@ private fun ActionButtons(
     }
 }
 
-/**
- * Dialogue simple pour confirmer la suppression d'une activité.
- */
 @Composable
 private fun DeleteActivityConfirmationDialog(
     onDismiss: () -> Unit,
@@ -404,10 +460,6 @@ private fun DeleteActivityConfirmationDialog(
     )
 }
 
-/**
- * Ce composable agit comme un "Switch" géant.
- * Il décide quel formulaire spécifique afficher en fonction du TypeObjectif sélectionné.
- */
 @Composable
 fun SpecificActivityFormContent(
     type: TypeObjectif,
@@ -418,10 +470,9 @@ fun SpecificActivityFormContent(
 ) {
     when (type) {
         TypeObjectif.COURSE -> {
-            // Si l'objet est null (ex: on passe de Vélo à Course), on en crée un vide
             val safeDetails = courseDetails ?: CourseActivite(
                 activiteId = 0,
-                vitesseMoyenne =10.0,
+                vitesseMoyenne = 10.0,
                 vitesseMax = 13.0,
                 bpmMoyen = 130,
                 bpmMax = 200,
@@ -431,8 +482,6 @@ fun SpecificActivityFormContent(
                 traceGpsJson = null
             )
 
-            // On notifie le parent immédiatement si on a dû créer l'objet par défaut
-            // pour éviter les états nulls incohérents
             LaunchedEffect(courseDetails) {
                 if (courseDetails == null) onCourseDetailsChange(safeDetails)
             }
@@ -459,16 +508,6 @@ fun SpecificActivityFormContent(
                 onDetailsChange = onMusculationDetailsChange
             )
         }
-        TypeObjectif.AUTRE -> {
-            // Si l'objet est null (ex: on passe de Course à Natation), on en crée un vide
-        }
-
-        // --- EXTENSIBILITÉ FUTURE ---
-        // TypeObjectif.NATATION -> { NatationForm(...) }
-        // TypeObjectif.VELO -> { VeloForm(...) }
-
-        else -> {
-            // Rien à afficher pour les types génériques
-        }
+        else -> {}
     }
 }

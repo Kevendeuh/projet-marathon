@@ -83,6 +83,23 @@ interface ObjectifDao {
     @Query("SELECT COUNT(*) FROM activite WHERE objectifId = :objectifId")
     suspend fun countTotalActivitesForObjectif(objectifId: Long): Int
 
+    @Query("SELECT * FROM activite")
+    fun getAllActivites(): LiveData<List<Activite>>
+
+    @Query("SELECT * FROM activite")
+    fun getAllActivitesFlow(): Flow<List<Activite>>
+
+    // Get only distinct names to populate the dropdown
+    @Query("SELECT DISTINCT nom FROM activite ORDER BY nom ASC")
+    fun getAllDistinctActiviteNamesLiveData(): LiveData<List<String>>
+
+    @Query("SELECT DISTINCT nom FROM activite WHERE nom IS NOT NULL AND nom != '' ORDER BY nom ASC")
+    suspend fun getDistinctActiviteNamesList(): List<String>
+
+    // Get the most recent activity by name to copy its details
+    @Query("SELECT * FROM activite WHERE nom = :name ORDER BY date DESC, id DESC LIMIT 1")
+    suspend fun getLastActiviteByName(name: String): Activite?
+
     /**
      * Compte le nombre d'activités déjà complétées pour un objectif.
      */
@@ -99,8 +116,8 @@ interface ObjectifDao {
     @Query("SELECT * FROM Objectif WHERE utilisateurId = :utilisateurId AND est_valide = 1")
     fun getActifObjectifsByUserAsLiveData(utilisateurId: Long): LiveData<List<Objectif>>
 
-    @Query("SELECT * FROM activite")
-    fun getAllActivites(): LiveData<List<Activite>>
+
+
 
     // ---------------------------------------------------------
     // GESTION DE L'ENTITÉ CourseActivite
@@ -118,6 +135,10 @@ interface ObjectifDao {
     // Récupération par ID de l'activité parente (LiveData - pour l'UI XML ou observeAsState)
     @Query("SELECT * FROM course_activite WHERE activiteId = :activiteId")
     fun getCourseActiviteByActiviteId(activiteId: Long): LiveData<CourseActivite?>
+
+    @Query("SELECT * FROM course_activite WHERE activiteId = :activiteId LIMIT 1")
+    suspend fun getCourseActiviteByActiviteIdSuspend(activiteId: Long): CourseActivite?
+
 
     // Récupération par ID de l'activité parente (Flow - recommandé pour Compose)
     @Query("SELECT * FROM course_activite WHERE activiteId = :activiteId")
@@ -172,6 +193,9 @@ interface ObjectifDao {
     // Récupération par ID de l'activité parente (LiveData - pour l'UI XML ou observeAsState)
     @Query("SELECT * FROM musculation_activite WHERE activiteId = :activiteId")
     fun getMusculationActiviteByActiviteId(activiteId: Long): LiveData<MusculationActivite?>
+
+    @Query("SELECT * FROM musculation_activite WHERE activiteId = :activiteId LIMIT 1")
+    suspend fun getMusculationActiviteByActiviteIdSuspend(activiteId: Long): MusculationActivite?
 
     // Récupération par ID de l'activité parente (Flow - recommandé pour Compose)
     @Query("SELECT * FROM musculation_activite WHERE activiteId = :activiteId")

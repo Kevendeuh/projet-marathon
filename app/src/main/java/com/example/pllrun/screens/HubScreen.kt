@@ -399,6 +399,7 @@ fun HubScreen(
         val musculationDetails by viewModel.getMusculationActiviteByActiviteIdFlow(activite.id).collectAsState(initial = null)
 
         ActivityDialog(
+            viewModel = viewModel,
             act = activite,
             initialCourseDetails = courseDetails,
             initialMusculationDetails = musculationDetails, // <-- AJOUT ICI
@@ -451,6 +452,7 @@ fun HubScreen(
 
         ActivityDialog(
             act = newActivity,
+            viewModel = viewModel,
             onDismiss = { showAddActivityDialog = false },
             onSave = { activiteCreee, detailsCourse, detailsMuscu -> // <-- MISE A JOUR SIGNATURE
                 // Le ViewModel gère l'insertion avec transaction selon le type de données retourné

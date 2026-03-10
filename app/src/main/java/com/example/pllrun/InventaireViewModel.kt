@@ -3,36 +3,23 @@ package com.example.pllrun
 
 import android.app.Application
 import android.util.Log
-import androidx.compose.foundation.gestures.forEach
-import androidx.compose.remote.creation.first
+import androidx.compose.foundation.layout.size
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
-import androidx.room.Query
 import com.example.pllrun.Classes.*
 import com.example.pllrun.calculator.ApportsNutritionnels
 import com.example.pllrun.calculator.PlannerGenerator
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.time.LocalTime
 import java.time.DayOfWeek
 import java.time.Duration
-import java.time.temporal.WeekFields
-import java.util.Locale
-import kotlin.math.roundToInt
-import com.example.pllrun.util.TimeMapping.minutesPreset
-import com.example.pllrun.util.TimeMapping.qualityCount
-import com.example.pllrun.util.TimeMapping.pickLongDay
-import com.example.pllrun.util.TimeMapping.pickQualityDays
-import com.example.pllrun.util.TimeMapping.longNote
-import com.example.pllrun.util.TimeMapping.qualityNote
-import com.example.pllrun.util.TimeMapping.easyNote
-import com.example.pllrun.util.toDayOfWeek
+import com.example.pllrun.util.NutritionAiGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -41,10 +28,9 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 import java.time.ZoneId
-import com.example.pllrun.util.NutritionAiGenerator
-import dagger.hilt.android.internal.Contexts.getApplication
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.onEach
 
 /**
  * View Model to keep a reference to the Inventory repository and an up-to-date list of all items.
@@ -381,6 +367,26 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
     fun getAllActivites(): LiveData<List<Activite>> {
         return objectifDao.getAllActivites()
     }
+    
+    fun getAllActivitesFlow(): Flow<List<Activite>> {
+        return objectifDao.getAllActivitesFlow()
+    }
+
+    fun getDistinctActiviteNames(): LiveData<List<String>> {
+        Log.d("VM_DEBUG", "⚠️ L'UI a appelé la fonction getDistinctActiviteNames() !")
+        return objectifDao.getAllDistinctActiviteNamesLiveData()
+    }
+
+    suspend fun getDistinctActiviteNamesList(): List<String> {
+        return objectifDao.getDistinctActiviteNamesList()
+    }
+
+    suspend fun getLastActiviteByName(name: String): Activite? {
+        Log.d("VM_DEBUG", "Recherche de la dernière activité pour le nom: $name")
+        val result = objectifDao.getLastActiviteByName(name)
+        Log.d("VM_DEBUG", "Résultat trouvé: ${result?.id ?: "AUCUN"}")
+        return result
+    }
 
     /**
      * Returns an instance of the [Item] entity class with the item info entered by the user.
@@ -449,31 +455,6 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
         }
     }
 
-    // Helpers privés à coller dans le ViewModel
-    private fun enumerateDates(
-        start: LocalDate,
-        end: LocalDate,
-        allowed: Set<DayOfWeek>
-    ): List<LocalDate> {
-        if (start.isAfter(end) || allowed.isEmpty()) return emptyList()
-        val out = mutableListOf<LocalDate>()
-        var d = start
-        while (!d.isAfter(end)) {
-            if (d.dayOfWeek in allowed) out += d
-            d = d.plusDays(1)
-        }
-        return out
-    }
-
-    private fun defaultLabelFor(
-        dow: DayOfWeek,
-        type: com.example.pllrun.Classes.TypeObjectif
-    ): Pair<String, String> = when (dow) {
-        DayOfWeek.SUNDAY   -> "Sortie longue"  to "Endurance Z2 ; adaptée à l’objectif ${type.libelle}"
-        DayOfWeek.TUESDAY  -> "Séance qualité" to "Tempo/Intervalles léger selon niveau"
-        else               -> "Footing"        to "Z1–Z2 ; mobilité légère"
-    }
-
     // ---------------------------------------------------------
     // GESTION DES DÉTAILS DE COURSE (CourseActivite)
     // ---------------------------------------------------------
@@ -520,6 +501,10 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
      */
     fun getCourseActiviteByActiviteId(activiteId: Long): LiveData<CourseActivite?> {
         return objectifDao.getCourseActiviteByActiviteId(activiteId)
+    }
+
+    suspend fun getCourseActiviteByActiviteIdSuspend(activiteId: Long): CourseActivite? {
+        return objectifDao.getCourseActiviteByActiviteIdSuspend(activiteId)
     }
 
     /**
@@ -633,6 +618,10 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
         return objectifDao.getMusculationActiviteByActiviteId(activiteId)
     }
 
+    suspend fun getMusculationActiviteByActiviteIdSuspend(activiteId: Long): MusculationActivite? {
+        return objectifDao.getMusculationActiviteByActiviteIdSuspend(activiteId)
+    }
+
     /**
      * Récupère les détails de musculation pour une activité donnée (Flow).
      */
@@ -675,6 +664,3 @@ class InventaireViewModelFactory(
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
-
-
-
