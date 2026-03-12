@@ -282,7 +282,7 @@ fun HubScreen(
 
                                 utilisateurPrincipal?.let { user ->
                                     Button(
-                                        onClick = { viewModel.genererSuggestionRepas(user) },
+                                        onClick = { viewModel.genererSuggestionRepas(user, viewModel) },
                                         enabled = !isLoadingSuggestion,
                                         modifier = Modifier.fillMaxWidth(),
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)

@@ -142,29 +142,34 @@ fun PlanningSportScreen(viewModel: InventaireViewModel,
 
     // 3. Dialogue d'édition d'activité
     activiteToEdit?.let { activite ->
-        // Astuce : Chargez les détails spécifiques AVANT d'ouvrir le dialogue ou observez-les
-        // Pour simplifier ici, imaginons que vous les ayez récupérés via le ViewModel
+        // 1. AJOUTE CES DEUX LIGNES POUR RÉCUPÉRER LES DÉTAILS
         val courseDetails by viewModel.getCourseActiviteByActiviteIdFlow(activite.id).collectAsState(initial = null)
+        val musculationDetails by viewModel.getMusculationActiviteByActiviteIdFlow(activite.id).collectAsState(initial = null)
 
         ActivityDialog(
             act = activite,
-            initialCourseDetails = courseDetails, // On passe les données existantes
+            viewModel = viewModel, // N'oublie pas le viewModel !
+            initialCourseDetails = courseDetails,           // 2. PASSE LES DÉTAILS ICI
+            initialMusculationDetails = musculationDetails, // 2. ET ICI
             isCreationMode = false,
             onDismiss = { activiteToEdit = null },
-            onDelete = { toDelete ->
-                viewModel.deleteActivite(toDelete)
-                activiteToEdit = null
-            },
-            onSave = { activiteCreee, detailsCourse, detailsMuscu -> // <-- MISE A JOUR SIGNATURE
-                // Le ViewModel gère l'insertion avec transaction selon le type de données retourné
-                if (detailsCourse != null) {
-                    viewModel.addNewActiviteWithCourseDetails(activiteCreee, detailsCourse)
-                } else if (detailsMuscu != null) {
-                    viewModel.addNewActiviteWithMusculationDetails(activiteCreee, detailsMuscu)
-                } else {
-                    viewModel.addNewActivite(activiteCreee)
+            onSave = { activiteMaj, detailsCourseMaj, detailsMuscuMaj ->
+                // La même logique de sauvegarde que dans le HubScreen
+                viewModel.updateActivite(activiteMaj)
+
+                if (detailsCourseMaj != null) {
+                    if (detailsCourseMaj.id != 0L) viewModel.updateCourseActivite(detailsCourseMaj)
+                    else viewModel.insertCourseActivite(detailsCourseMaj.copy(activiteId = activiteMaj.id))
                 }
 
+                if (detailsMuscuMaj != null) {
+                    if (detailsMuscuMaj.id != 0L) viewModel.updateMusculationActivite(detailsMuscuMaj)
+                    else viewModel.insertMusculationActivite(detailsMuscuMaj.copy(activiteId = activiteMaj.id))
+                }
+                activiteToEdit = null
+            },
+            onDelete = {
+                viewModel.deleteActivite(it)
                 activiteToEdit = null
             }
         )

@@ -18,7 +18,7 @@ object CaloriesGenerator {
 
     fun calculateTotalNutriments(
         utilisateur: Utilisateur?,
-        activitesDuJour: List<Activite>
+        activitesDuJour: List<Activite>?
     ): ApportsNutritionnels {
         // Si l'utilisateur n'est pas fourni, on ne peut rien calculer.
         if (utilisateur == null) {
@@ -46,8 +46,8 @@ object CaloriesGenerator {
 
         // 3. Calcul du coefficient d'activité basé sur les activités du jour fournies
         var coefficient = 1.2F // Coefficient de base pour une personne sédentaire
-        activitesDuJour.forEach { activite ->
-            coefficient += (activite.tempsEffectue?.toMinutes() ?: 0L) * 0.001F * activite.niveau.facteur
+        activitesDuJour?.forEach { activite ->
+            coefficient += activite.tempsEffectue.toMinutes() * 0.001F * activite.niveau.facteur
         }
         // Plafonnage
         coefficient = coefficient.coerceAtMost(2.5F)

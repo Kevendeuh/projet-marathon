@@ -118,11 +118,14 @@ class InventaireViewModel(private val utilisateurDao: UtilisateurDao,
     /**
      * Lance la génération d'une suggestion de repas pour un utilisateur donné.
      */
-    fun genererSuggestionRepas(utilisateur: Utilisateur) {
+    fun genererSuggestionRepas(utilisateur: Utilisateur,viewModel: InventaireViewModel) {
         viewModelScope.launch {
             _isLoadingSuggestion.value = true
             // Lance la génération (fonction suspendue qui retourne un Flow)
-            nutritionAiGenerator.genererSuggestionRepas(utilisateur).collect { partialResponse ->
+            nutritionAiGenerator.genererSuggestionRepas(
+                utilisateur,
+                viewModel = viewModel
+            ).collect { partialResponse ->
                 _suggestionRepas.value = partialResponse
             }
             _isLoadingSuggestion.value = false

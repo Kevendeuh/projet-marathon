@@ -139,9 +139,9 @@ fun ActivityDialog(
     // 2. Filtrage optimisé (limité à 5 résultats)
     val filteredNames = remember(nom, allNames) {
         if (nom.isEmpty()) {
-            allNames.take(5)
+            allNames
         } else {
-            allNames.filter { it.contains(nom, ignoreCase = true) }.take(5)
+            allNames.filter { it.contains(nom, ignoreCase = true) }
         }
     }
     // On récupère TOUTES les activités pour voir si la base est vraiment vide
@@ -186,10 +186,7 @@ fun ActivityDialog(
                                     nom = it
                                     expandedNom = true
                                 },
-                                //label = { Text("Nom de l'activité") },
-                                label = {
-                                    Text("Noms uniques: ${allNames.size} | Activités totales DB: ${toutesLesActivites.size}")
-                                },
+                                label = { Text("Nom de l'activité") },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .menuAnchor(), // CRITICAL: This attaches the menu to the field
@@ -211,23 +208,32 @@ fun ActivityDialog(
                                             nom = name
                                             expandedNom = false
 
-                                            // Récupération des détails pour le nom sélectionné
+                                            // Récupération instantanée de TOUS les détails
                                             viewModel?.let { vm ->
                                                 coroutineScope.launch {
+                                                    // 1. On récupère l'activité de base
                                                     val last = vm.getLastActiviteByName(name)
+
                                                     last?.let {
                                                         description = it.description
                                                         typeActivite = it.typeActivite
                                                         niveau = it.niveau
                                                         tempsEffectueMinutes = it.tempsEffectue.toMinutes().toString()
 
-                                                        // Chargement des sous-détails selon le type (Course ou Muscu)
+                                                        // 2. On récupère les détails spécifiques selon le type
                                                         if (it.typeActivite == TypeObjectif.COURSE) {
-                                                            courseDetailsState = vm.getCourseActiviteByActiviteIdOnce(it.id)?.copy(id = 0, activiteId = 0)
+                                                            val courseDetails = vm.getCourseActiviteByActiviteIdSuspend(it.id)
+                                                            // On conserve l'ID de la modification en cours pour éviter les doublons !
+                                                            val currentId = courseDetailsState?.id ?: 0L
+                                                            courseDetailsState = courseDetails?.copy(id = currentId, activiteId = act.id)
                                                             musculationDetailsState = null
+
                                                         } else if (it.typeActivite == TypeObjectif.MUSCULATION) {
-                                                            musculationDetailsState = vm.getMusculationActiviteByActiviteIdOnce(it.id)?.copy(id = 0, activiteId = 0)
+                                                            val muscuDetails = vm.getMusculationActiviteByActiviteIdSuspend(it.id)
+                                                            val currentId = musculationDetailsState?.id ?: 0L
+                                                            musculationDetailsState = muscuDetails?.copy(id = currentId, activiteId = act.id)
                                                             courseDetailsState = null
+
                                                         } else {
                                                             courseDetailsState = null
                                                             musculationDetailsState = null
@@ -496,7 +502,8 @@ fun SpecificActivityFormContent(
                 activiteId = 0,
                 musclesCibles = emptyList(),
                 series = emptyList(),
-                effortRessenti = EffortRessenti.ECHAUFFEMENT
+                effortRessenti = EffortRessenti.ECHAUFFEMENT,
+
             )
 
             LaunchedEffect(musculationDetails) {

@@ -4,9 +4,16 @@ import android.content.Context
 import android.util.Log
 import ai.mlc.mlcllm.MLCEngine
 import ai.mlc.mlcllm.OpenAIProtocol
+import android.os.Environment
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pllrun.Classes.NiveauExperience
 import com.example.pllrun.Classes.Sexe
 import com.example.pllrun.Classes.Utilisateur
+import com.example.pllrun.InventaireViewModel
+import com.example.pllrun.calculator.ApportsNutritionnels
+import com.example.pllrun.calculator.CaloriesGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -72,7 +79,7 @@ class NutritionAiGenerator(private val context: Context) {
      *
      * @return A formatted recipe string, or a localised error message on failure.
      */
-    suspend fun genererSuggestionRepas(utilisateur: Utilisateur): Flow<String> = flow {
+    suspend fun genererSuggestionRepas(utilisateur: Utilisateur, viewModel: InventaireViewModel): Flow<String> = flow {
         try {
             ensureModelLoaded()
             val engine = _engine
@@ -81,7 +88,10 @@ class NutritionAiGenerator(private val context: Context) {
                 return@flow
             }
 
-            val systemPrompt = buildSystemPrompt()
+            val systemPrompt = buildSystemPrompt(
+                utilisateur = utilisateur,
+                apports = viewModel.getRecommendedNutriments(utilisateur.id,).value ?: ApportsNutritionnels(0F,0F,0F,0F)
+            )
             val userPrompt  = buildUserPrompt(utilisateur)
 
             Log.d(TAG, "Envoi du prompt…")
@@ -160,8 +170,8 @@ class NutritionAiGenerator(private val context: Context) {
         val candidates = listOf(
             File(context.getExternalFilesDir(null), MODEL_DIR_NAME),
             File(
-                android.os.Environment.getExternalStoragePublicDirectory(
-                    android.os.Environment.DIRECTORY_DOWNLOADS
+                Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_DOWNLOADS
                 ),
                 MODEL_DIR_NAME
             )
@@ -202,11 +212,46 @@ class NutritionAiGenerator(private val context: Context) {
      * System prompt: establishes the expert persona and output format.
      * Keeping it concise reduces prefill time on device.
      */
-    private fun buildSystemPrompt(): String = """
-        Tu es un nutritionniste expert spécialisé dans la performance sportive et le marathon.
-        Tu réponds TOUJOURS en français, de manière concise et structurée.
-        Pour chaque demande, tu fournis UNE SEULE recette complète avec le format suivant (exactement) :
+ 
 
+    fun buildSystemPrompt(
+        utilisateur: Utilisateur,
+        apports: ApportsNutritionnels
+    ): String {
+        // 1. Calcul de l'âge identique à ton CaloriesGenerator
+        val age = utilisateur.dateDeNaissance?.let {
+            Period.between(it, LocalDate.now()).years.toString()
+        } ?: "unknown"
+
+        // 2. Traduction du sexe pour l'IA (en anglais)
+        val genderEn = when (utilisateur.sexe) {
+            Sexe.HOMME -> "male"
+            Sexe.FEMME -> "female"
+            else -> "person"
+        }
+
+        // 3. Construction du prompt
+        // On utilise .toInt() sur tes Float pour donner des chiffres ronds au LLM
+        return """
+        You are an expert sports nutritionist specializing in athletic performance.
+        
+        Your task is to create ONE single, realistic meal recipe tailored for a $age-year-old $genderEn, height: ${utilisateur.taille}cm, weight: ${utilisateur.poids}kg.
+        
+        The user's DAILY nutritional targets are: 
+        - Calories: ${apports.calories.toInt()} kcal
+        - Protein: ${apports.proteines.toInt()}g
+        - Carbohydrates: ${apports.glucides.toInt()}g
+        - Fats: ${apports.lipides.toInt()}g
+        
+        The meal you provide should represent an appropriate portion of these daily targets (e.g., roughly 30-40% of the daily intake).
+
+        CRITICAL INSTRUCTIONS:
+        1. Provide realistic recipes using a maximum of 15 ingredients.
+        2. Each ingredient must be explicitly listed in the INGREDIENTS section exactly once.
+        3. Be concise and highly structured.
+        4. You MUST output the final response in ENGLISH, strictly following the exact template below. Do NOT add any conversational introductory or concluding text.
+
+        TEMPLATE (Translate the dynamic values, but keep these exact headers):
         NOM DE LA RECETTE
         Temps de préparation : X min | Temps de cuisson : X min
 
@@ -216,9 +261,10 @@ class NutritionAiGenerator(private val context: Context) {
         PRÉPARATION (étapes numérotées, courtes)
         1. ...
 
-        VALEURS NUTRITIONNELLES (estimées)
+        VALEURS NUTRITIONNELLES (estimées pour ce repas)
         Calories : X kcal | Protéines : Xg | Glucides : Xg | Lipides : Xg
     """.trimIndent()
+    }
 
     /**
      * User prompt: injects all relevant [Utilisateur] metrics.
@@ -268,7 +314,7 @@ class NutritionAiGenerator(private val context: Context) {
         return """
             Génère une recette post-entraînement adaptée au profil ci-dessous.
             La recette doit favoriser la récupération musculaire et la recharge glycogénique
-            pour un coureur de marathon.
+            pour un sportif.
 
             === PROFIL ATHLÈTE ===
             Prénom     : ${u.prenom.ifBlank { "Non renseigné" }}
